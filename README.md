@@ -48,6 +48,10 @@ npm start
 
 /bsjs/output
 
+## Updates
+
+- Add obstacle
+
 ## References
 
 - [bsmg.wiki](https://bsmg.wiki/)
