@@ -57,7 +57,7 @@ const LEFT_NOTE_FORMATS = [
   // [3,2],
 
   [4,0], [4,3], [4,6],
-  [5,0], [5,1], [5,2], [5,3], [5,5], [5,6], [5,7], [5,8],
+  [5,0], [5,1], [5,2], [5,3], [5,4], [5,5], [5,6], [5,7], [5,8],
   // [6,2], [6,5],
   // [7,5],
 
@@ -73,7 +73,7 @@ const LEFT_NOTE_FORMATS = [
   // [3,2],
 
   [4,0], [4,3], [4,6],
-  [5,0], [5,1], [5,2], [5,3], [5,5], [5,6], [5,7], [5,8],
+  [5,0], [5,1], [5,2], [5,3], [5,4], [5,5], [5,6], [5,7], [5,8],
   [6,2], [6,5],
   // [7,5],
 
@@ -301,42 +301,64 @@ function chkDupeNotes(l, r) {
   if (isSameRow(lp, rp) && lp > rp) {
     return false;
   }
-  // same row, no space
+  // same row, no space, blocked slide
   if (isSameRow(lp, rp) && getColDiff(lp, rp) === 1) {
-    if (ld === 3 || rd === 5) {
+    if (ld === 3 || ld === 5) {
+      return false;
+    }
+    if (rd === 3 || rd === 5) {
       return false;
     }
   }
-  // same col, no space
+  // same col, no space, blocked slide
   if (isSameCol(lp, rp) && getRowDiff(lp, rp) === 1) {
-    if (ld === 1 || rd === 7) {
+    if (ld === 1 || ld === 7) {
+      return false;
+    }
+    if (rd === 1 || rd === 7) {
       return false;
     }
   }
-  // digonal, 
+  // digonal, blocked slide
   if (isDigonalPosition(lp, rp)) {
     const lc = getCol(lp);
     const lr = getRow(lp);
     const rc = getCol(rp);
     const rr = getRow(rp);
     if (lc < rc && lr < rr) {
-      // left-top, right-bottom
-      if (ld === 0 && rd === 8) {
+      // l,-
+      // -,r
+      if (ld === 0 || ld === 8) {
         return false;
       }
-    } else if (lc > rc && lr < rr) {
-      // right-top, left bottom
-      if (ld === 2 && rd === 6) {
-        return false;
-      }
-    } else if (lc < rc && lr > rr) {
-      // left-bottom, right-top
-      if (ld === 6 && rd === 2) {
+      if (rd === 0 || rd === 8) {
         return false;
       }
     } else if (lc > rc && lr > rr) {
-      // right-bottom, left-top
-      if (ld === 8 && rd === 0) {
+      // r,-
+      // -,l
+      if (ld === 0 || ld === 8) {
+        return false;
+      }
+      if (rd === 0 || rd === 8) {
+        return false;
+      }
+    } else if (lc > rc && lr < rr) {
+      // -,l
+      // r,-
+      if (ld === 2 || ld === 6) {
+        return false;
+      }
+      if (rd === 2 || rd === 6) {
+        return false;
+      }
+    } else if (lc < rc && lr > rr) {
+      // -,r
+      // l,-
+      if (ld === 2 || ld === 6) {
+        return false;
+      }
+      if (rd === 2 || rd === 6) {
         return false;
       }
     }
@@ -349,6 +371,7 @@ function chkSamePosition(l, r) {
   if (!l || !r) {
     return true;
   }
+
   const lp = getPotisionIndex(l.x, l.y);
   const rp = getPotisionIndex(r.x, r.y);
 
@@ -365,7 +388,7 @@ function getNextDirectionIndex(d) {
     case 1: return jsutl.choose([7,7,7,6,8]);
     case 2: return jsutl.choose([6,6,6,3,7]);
     case 3: return jsutl.choose([5,5,5,2,8]);
-    case 4: return jsutl.choose([4]);
+    case 4: return jsutl.choose([4,4,4,0,1,2,3,5,6,7,8]);
     case 5: return jsutl.choose([3,3,3,0,6]);
     case 6: return jsutl.choose([2,2,2,1,5]);
     case 7: return jsutl.choose([1,1,1,0,2]);
