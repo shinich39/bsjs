@@ -1,0 +1,963 @@
+'use strict';
+
+import path from "node:path";
+import fs from "node:fs";
+import { fileURLToPath } from 'node:url';
+import wav from './libs/wav.js';
+import jsutl from './libs/jsutl.js';
+import ffmpeg from "fluent-ffmpeg";
+import jsmediatags from 'jsmediatags';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const TMP_PATH = path.join(__dirname, "tmp");
+const COVER_PATH = path.join(__dirname, "cover.jpg");
+const OUTPUT_PATH = path.join(__dirname, "output");
+
+const INFO_VERSION = '2.0.0';
+const MAP_VERSION = '3.0.0';
+
+// const BEAT_STEP_LIST = [0.5, 0.4, 0.3, 0.2, 0.1];
+const BEAT_STEP_LIST = [0.5, 0.4, 0.3, 0.25, 0.2];
+const BEAT_VOLUME_THRESHOLD_LIST = [0.5, 0.4, 0.3, 0.2, 0.1];
+const BEAT_NOTE_THRESHOLD_LIST = [0.3, 0.4, 0.5, 0.6, 0.7];
+const BEAT_SPACING_LIST = [0.25, 0.25, 0.25, 0.25, 0.25]; // 1/4 beat
+const TYPE_SPACING_LIST = [0.5, 0.45, 0.4, 0.35, 0.3]; // beats
+const CONNECT_SPACING_LIST = [1.5, 1.5, 1.25, 1, 1]; // beats
+
+const POSITIONS = [
+  0,1,2,3,
+  4,5,6,7,
+  8,9,10,11,
+];
+
+const DIRECTIONS = [
+  0,1,2,
+  3,4,5,
+  6,7,8,
+];
+
+const NOTE_POSITIONS = [
+  {x: 0, y: 2}, {x: 1, y: 2}, {x: 2, y: 2}, {x: 3, y: 2},
+  {x: 0, y: 1}, {x: 1, y: 1}, {x: 2, y: 1}, {x: 3, y: 1},
+  {x: 0, y: 0}, {x: 1, y: 0}, {x: 2, y: 0}, {x: 3, y: 0},
+];
+
+const NOTE_DIRECTIONS = [
+  {d: 4}, {d: 0}, {d: 5},
+  {d: 2}, {d: 8}, {d: 3},
+  {d: 6}, {d: 1}, {d: 7},
+];
+
+const LEFT_NOTE_FORMATS = [
+  // primary
+  // [0,0], [0,1],
+  // [1,0], [1,1], [1,2],
+  // [2,2],
+  // [3,2],
+
+  [4,0], [4,3], [4,6],
+  [5,0], [5,1], [5,2], [5,3], [5,5], [5,6], [5,7], [5,8],
+  // [6,2], [6,5],
+  // [7,5],
+
+  [8,6], [8,7],
+  [9,6], [9,7], [9,8],
+  // [10,8],
+  // [11,8],
+
+  // all
+  [0,0], [0,1],
+  [1,0], [1,1], [1,2],
+  [2,2],
+  // [3,2],
+
+  [4,0], [4,3], [4,6],
+  [5,0], [5,1], [5,2], [5,3], [5,5], [5,6], [5,7], [5,8],
+  [6,2], [6,5],
+  // [7,5],
+
+  [8,6], [8,7],
+  [9,6], [9,7], [9,8],
+  [10,8],
+  // [11,8],
+];
+
+const RIGHT_NOTE_FORMATS = [
+  // primary
+  // [0,0], 
+  // [1,0],
+  // [2,0], [2,1], [2,2],
+  // [3,1], [3,2],
+
+  // [4,3],
+  // [5,0], [5,3],
+  [6,0], [6,1], [6,2], [6,3], [6,5], [6,6], [6,7], [6,8],
+  [7,2], [7,5], [7,8],
+  
+  // [8,6],
+  // [9,6],
+  [10,6], [10,7], [10,8],
+  [11,7], [11,8],
+
+  // all
+  // [0,0], 
+  [1,0],
+  [2,0], [2,1], [2,2],
+  [3,1], [3,2],
+
+  // [4,3],
+  [5,0], [5,3],
+  [6,0], [6,1], [6,2], [6,3], [6,5], [6,6], [6,7], [6,8],
+  [7,2], [7,5], [7,8],
+  
+  // [8,6],
+  [9,6],
+  [10,6], [10,7], [10,8],
+  [11,7], [11,8],
+];
+
+function createInfo(songName, authorName, bpm) {
+  return {
+    '_version': `${INFO_VERSION}`,
+    '_songName': `${songName}`,
+    '_songSubName': '',
+    '_songAuthorName': `${authorName}`,
+    '_levelAuthorName': 'bsjs',
+    '_beatsPerMinute': Math.round(bpm),
+    '_songTimeOffset': 0,
+    '_shuffle': 0,
+    '_shufflePeriod': 0,
+    '_previewStartTime': 10,
+    '_previewDuration': 30,
+    '_songFilename': 'song.egg',
+    '_coverImageFilename': 'cover.jpg',
+    '_environmentName': 'DefaultEnvironment',
+    // "_allDirectionsEnvironmentName": "GlassDesertEnvironment",
+    '_customData': {},
+    '_difficultyBeatmapSets': []
+  }
+}
+
+function addDiff(info, difficulty, offset = 0, characteristicName = "Standard") {
+  let _difficulty = "",
+      _difficultyRank = 0,
+      _beatmapFilename = "",
+      _noteJumpMovementSpeed = 0;
+
+  switch(difficulty) {
+    case "easy":
+      _difficulty = "Easy";
+      _difficultyRank = 1;
+      _noteJumpMovementSpeed = jsutl.choose([7,8]);
+      break;
+    case "normal":
+      _difficulty = "Normal";
+      _difficultyRank = 3;
+      _noteJumpMovementSpeed = jsutl.choose([9,10]);
+      break;
+    case "hard":
+      _difficulty = "Hard";
+      _difficultyRank = 5;
+      _noteJumpMovementSpeed = jsutl.choose([11,12]);
+      break;
+    case "expert":
+      _difficulty = "Expert";
+      _difficultyRank = 7;
+      _noteJumpMovementSpeed = jsutl.choose([13,14]);
+      break;
+    case "expertPlus":
+      _difficulty = "ExpertPlus";
+      _difficultyRank = 9;
+      _noteJumpMovementSpeed = jsutl.choose([15,16]);
+      break;
+  }
+
+  _beatmapFilename = `${_difficulty}${characteristicName}.dat`;
+
+  let _difficultyBeatmap = {
+    _difficulty: _difficulty,
+    _difficultyRank: _difficultyRank,
+    _beatmapFilename: _beatmapFilename,
+    _noteJumpMovementSpeed: _noteJumpMovementSpeed,
+    _noteJumpStartBeatOffset: offset,
+    _customData: {
+      // "_editorOffset": 0,
+      // "_editorOldOffset": 0,
+      // "_suggestions": [
+      //   "Cinema"
+      // ],
+      // "_obstacleColor": {
+      //   "r": 1,
+      //   "g": 0,
+      //   "b": 0
+      // },
+      // "_envColorRightBoost": {
+      //   "r": 0.89,
+      //   "g": 0.396,
+      //   "b": 0.757
+      // },
+      // "_envColorLeftBoost": {
+      //   "r": 0.8,
+      //   "g": 0.91,
+      //   "b": 0.8
+      // },
+      // "_colorRight": {
+      //   "r": 0.125,
+      //   "g": 0.392,
+      //   "b": 0.659
+      // },
+      // "_colorLeft": {
+      //   "r": 0.753,
+      //   "g": 0.188,
+      //   "b": 0.188
+      // }
+    },
+
+    // v3
+    // _beatmapColorSchemeIdx: 0,
+    // _environmentNameIdx: 0,
+  }
+
+  let _difficultyBeatmapSets = info._difficultyBeatmapSets.find(function(item) {
+    return item._beatmapCharacteristicName == characteristicName;
+  });
+
+  if (!_difficultyBeatmapSets) {
+    _difficultyBeatmapSets = {
+      _beatmapCharacteristicName: characteristicName,
+      _difficultyBeatmaps: [],
+    }
+
+    info._difficultyBeatmapSets.push(_difficultyBeatmapSets);
+  }
+
+  _difficultyBeatmapSets._difficultyBeatmaps.push(_difficultyBeatmap);
+  
+  return _difficultyBeatmap;
+}
+
+function createLevel() {
+  return {
+    'version': `${MAP_VERSION}`,
+    // notes
+    'colorNotes': [],
+    'bombNotes': [],
+    'obstacles': [],
+    'sliders': [],
+    'burstSliders': [], // v4: chains
+    // events
+    'bpmEvents': [],
+    'rotationEvents': [],
+    'basicBeatmapEvents': [],
+    'colorBoostBeatmapEvents': [],
+    'useNormalEventsAsCompatibleEvents': false,
+    'basicEventTypesWithKeywords': [{'b': []}],
+    // maps?
+    'waypoints': [],
+    'lightColorEventBoxGroups': [],
+    'lightRotationEventBoxGroups': [],
+    
+    'customData': {},
+  }
+}
+
+function getPotisionIndex(x, y) {
+  return NOTE_POSITIONS.findIndex(function(item) {
+    return item.x === x && item.y === y;
+  });
+}
+
+function getDirectionIndex(d) {
+  return NOTE_DIRECTIONS.findIndex(function(item) {
+    return item.d === d;
+  });
+}
+
+// const POSITIONS = [
+//   0,1,2,3,
+//   4,5,6,7,
+//   8,9,10,11,
+// ];
+
+// const DIRECTIONS = [
+//   0,1,2,
+//   3,4,5,
+//   6,7,8,
+// ];
+function chkDupeNotes(l, r) {
+  if (!l || !r) {
+    return true;
+  } 
+  const lp = getPotisionIndex(l.x, l.y);
+  const ld = getDirectionIndex(l.d);
+  const rp = getPotisionIndex(r.x, r.y);
+  const rd = getDirectionIndex(r.d);
+  // same position
+  if (lp === rp) {
+    return false;
+  }
+  // same row, crossed
+  if (isSameRow(lp, rp) && lp > rp) {
+    return false;
+  }
+  // same row, no space
+  if (isSameRow(lp, rp) && getColDiff(lp, rp) === 1) {
+    if (ld === 3 || rd === 5) {
+      return false;
+    }
+  }
+  // same col, no space
+  if (isSameCol(lp, rp) && getRowDiff(lp, rp) === 1) {
+    if (ld === 1 || rd === 7) {
+      return false;
+    }
+  }
+  // digonal, 
+  if (isDigonalPosition(lp, rp)) {
+    const lc = getCol(lp);
+    const lr = getRow(lp);
+    const rc = getCol(rp);
+    const rr = getRow(rp);
+    if (lc < rc && lr < rr) {
+      // left-top, right-bottom
+      if (ld === 0 && rd === 8) {
+        return false;
+      }
+    } else if (lc > rc && lr < rr) {
+      // right-top, left bottom
+      if (ld === 2 && rd === 6) {
+        return false;
+      }
+    } else if (lc < rc && lr > rr) {
+      // left-bottom, right-top
+      if (ld === 6 && rd === 2) {
+        return false;
+      }
+    } else if (lc > rc && lr > rr) {
+      // right-bottom, left-top
+      if (ld === 8 && rd === 0) {
+        return false;
+      }
+    }
+  }
+
+  return true;
+}
+
+function chkSamePosition(l, r) {
+  if (!l || !r) {
+    return true;
+  }
+  const lp = getPotisionIndex(l.x, l.y);
+  const rp = getPotisionIndex(r.x, r.y);
+
+  return lp !== rp;
+}
+
+function createNoteByIndex(beat, type, positionIndex, directionIndex) {
+  return Object.assign({b: beat, c: type}, NOTE_POSITIONS[positionIndex], NOTE_DIRECTIONS[directionIndex]);
+}
+
+function getNextDirectionIndex(d) {
+  switch(d) {
+    case 0: return jsutl.choose([8,8,8,5,7]);
+    case 1: return jsutl.choose([7,7,7,6,8]);
+    case 2: return jsutl.choose([6,6,6,3,7]);
+    case 3: return jsutl.choose([5,5,5,2,8]);
+    case 4: return jsutl.choose([4]);
+    case 5: return jsutl.choose([3,3,3,0,6]);
+    case 6: return jsutl.choose([2,2,2,1,5]);
+    case 7: return jsutl.choose([1,1,1,0,2]);
+    case 8: return jsutl.choose([0,0,0,1,3]);
+  }
+}
+
+function getRow(i) {
+  return Math.floor(i / 4);
+}
+
+function getCol(i) {
+  return i % 4;
+}
+
+function isSameRow(a, b) {
+  return Math.floor(a / 4) === Math.floor(b / 4);
+}
+
+function isSameCol(a, b) {
+  return a % 4 === b % 4;
+}
+
+function getRowDiff(a, b) {
+  return Math.abs(Math.floor(a / 4) - Math.floor(b / 4));
+}
+
+function getColDiff(a, b) {
+  return Math.abs((a % 4) - (b % 4));
+}
+
+function isDigonalPosition(a, b) {
+  return getColDiff(a, b) === 1 && getRowDiff(a, b) === 1;
+}
+
+// [
+//   2,2,  1, x,
+//   3,1-9,2, x,
+//   3,3,  1, x,
+// ]
+function getNextLeftPositionIndex(p) {
+  let factors = [p];
+
+  if (isDigonalPosition(p, p-5)) {
+    factors.push(p,p-5,p-5);
+  }
+  if (isSameCol(p, p-4)) {
+    factors.push(p,p-4,p-4);
+  }
+  if (isDigonalPosition(p, p-3)) {
+    factors.push(p,p-3);
+  }
+  if (isSameRow(p, p-1)) {
+    factors.push(p,p-1,p-1,p-1);
+  }
+  if (isSameRow(p, p+1)) {
+    factors.push(p,p+1,p+1);
+  }
+  if (isDigonalPosition(p, p+3)) {
+    factors.push(p,p+3,p+3,p+3);
+  }
+  if (isSameCol(p, p+4)) {
+    factors.push(p,p+4,p+4,p+4);
+  }
+  if (isDigonalPosition(p, p+5)) {
+    factors.push(p,p+5);
+  }
+
+  factors = factors.filter(function(f) {
+    return f >= 0 && f <= 11;
+  });
+
+  return jsutl.choose(factors);
+}
+
+// [
+//   1,2,  2, x,
+//   2,1-9,3, x,
+//   1,3,  3, x,
+// ]
+function getNextRightPositionIndex(p) {
+  let factors = [p];
+
+  if (isDigonalPosition(p, p-5)) {
+    factors.push(p,p-5);
+  }
+  if (isSameCol(p, p-4)) {
+    factors.push(p,p-4,p-4);
+  }
+  if (isDigonalPosition(p, p-3)) {
+    factors.push(p,p-3,p-3);
+  }
+  if (isSameRow(p, p-1)) {
+    factors.push(p,p-1,p-1);
+  }
+  if (isSameRow(p, p+1)) {
+    factors.push(p,p+1,p+1,p+1);
+  }
+  if (isDigonalPosition(p, p+3)) {
+    factors.push(p,p+3);
+  }
+  if (isSameCol(p, p+4)) {
+    factors.push(p,p+4,p+4,p+4);
+  }
+  if (isDigonalPosition(p, p+5)) {
+    factors.push(p,p+5,p+5,p+5);
+  }
+  
+  factors = factors.filter(function(f) {
+    return f >= 0 && f <= 11;
+  });
+
+  return jsutl.choose(factors);
+}
+
+function createNextLeftNote(beat, prevNote) {
+  let positionIndex, directionIndex;
+  if (!prevNote) {
+    [positionIndex, directionIndex] = jsutl.choose(LEFT_NOTE_FORMATS);
+  } else {
+    positionIndex = getNextLeftPositionIndex(getPotisionIndex(prevNote.x, prevNote.y));
+    directionIndex = getNextDirectionIndex(getDirectionIndex(prevNote.d));
+  }
+  return createNoteByIndex(beat, 0, positionIndex, directionIndex);
+}
+
+function createNextRightNote(beat, prevNote) {
+  let positionIndex, directionIndex;
+  if (!prevNote) {
+    [positionIndex, directionIndex] = jsutl.choose(RIGHT_NOTE_FORMATS);
+  } else {
+    positionIndex = getNextRightPositionIndex(getPotisionIndex(prevNote.x, prevNote.y));
+    directionIndex = getNextDirectionIndex(getDirectionIndex(prevNote.d));
+  }
+  return createNoteByIndex(beat, 1, positionIndex, directionIndex);
+}
+
+function getPrevLeftNote(colorNotes) {
+  for (let i = colorNotes.length - 1; i >= 0; i--) {
+    if (colorNotes[i].c == 0) {
+      return colorNotes[i];
+    }
+  }
+  return null;
+}
+
+function getPrevRightNote(colorNotes) {
+  for (let i = colorNotes.length - 1; i >= 0; i--) {
+    if (colorNotes[i].c == 1) {
+      return colorNotes[i];
+    }
+  }
+  return null;
+}
+
+// https://bsmg.wiki/mapping/map-format/beatmap.html
+// 4 x 3 blocks
+// position
+// const cols = [0,1,2,3];
+// 0  left most
+// 1  left
+// 2  right
+// 3  right most
+
+// const rows = [0,1,2];
+// 0  bottom
+// 1  center
+// 2  top
+
+// const types = [0, 1];
+// 0	Left Saber
+// 1	Right Saber
+
+// const directions = [0,1,2,3,4,5,6,7,8];
+// 0	Up
+// 1	Down
+// 2	Left
+// 3	Right
+// 4	Up Left
+// 5	Up Right
+// 6	Down Left
+// 7	Down Right
+// 8	Any
+
+// const angles = [0];
+// 0 to 360
+function createDummyNote(beat) {
+  const cols = [0,1,2,3];
+  const rows = [0,1,2];
+  const types = [0,1]; // left, right
+  const directions = [0,1,2,3,4,5,6,7,8];
+  const angles = [0];
+  return {
+    'b': beat,
+    'x': jsutl.choose(cols),
+    'y': jsutl.choose(rows),
+    'c': jsutl.choose(types),
+    'd': jsutl.choose(directions),
+    'a': jsutl.choose(angles),
+  }
+}
+
+function createColorNote(beat, options) {
+  const cols = options && options.cols ? options.cols : [0,1,2,3];
+  const rows = options && options.rows ? options.rows : [0,1,2];
+  const types = options && options.types ? options.types : [0, 1];
+  const directions = options && options.directions ? options.directions : [0,1,2,3,4,5,6,7,8];
+  const angles = options && options.angles ? options.angles : [0];
+  return {
+    'b': beat,
+    'x': jsutl.choose(cols),
+    'y': jsutl.choose(rows),
+    'c': jsutl.choose(types),
+    'd': jsutl.choose(directions),
+    'a': jsutl.choose(angles),
+  }
+}
+
+// https://bsmg.wiki/mapping/map-format/beatmap.html#bomb-notes
+function createBombNote(beat, options) {
+  if (!options) {
+    options = {};
+  }
+
+  // 4 x 3 blocks
+  // position
+  const cols = options.cols || [0,1,2,3];
+  // 0  left most
+  // 1  left
+  // 2  right
+  // 3  right most
+
+  const rows = options.rows || [0,1,2];
+  // 0  bottom
+  // 1  center
+  // 2  top
+
+  return {
+    'b': beat,
+    'x': jsutl.choose(cols),
+    'y': jsutl.choose(rows),
+  }
+}
+
+// https://bsmg.wiki/mapping/map-format/beatmap.html#obstacles
+function createObstacle(beat, options) {
+  if (!options) {
+    options = {};
+  }
+
+  // 4 x 3 blocks
+  // position
+  const cols = options.cols || [0,1,2,3];
+  // 0  left most
+  // 1  left
+  // 2  right
+  // 3  right most
+
+  const rows = options.rows || [0,1,2];
+  // 0  bottom
+  // 1  center
+  // 2  top
+
+  const duration = options.duration || [3,3,3,3,3,5,5,5,5,7,7,7,9,9,11];
+
+  const widtheList = [1,2,3];
+  const heightList = [1,2,3,4,5];
+
+  return {
+    'b': beat,
+    "d": jsutl.choose(duration), // Duration
+    'x': jsutl.choose(cols),
+    'y': jsutl.choose(rows),
+    "w": 1, // Width
+    "h": 5, // Height
+  }
+}
+
+function getMetadata(srcPath) {
+  return new Promise(function(resolve, reject) {
+    ffmpeg.ffprobe(srcPath, function(err, metadata) {
+      if (err) {
+        reject(err);
+        return;
+      }
+      resolve(metadata);
+    });
+  });
+}
+
+function getCover(filePath) {
+  return new Promise(function(resolve, reject) {
+    jsmediatags.read(filePath, {
+      onSuccess: function(tag) {
+        let tags = tag.tags;
+        let image = tags.picture;
+        if (!image) {
+          reject(new Error("Cover not found."));
+          return;
+        }
+        resolve(image);
+      },
+      onError: function(err) {
+        reject(err);
+      }
+    });
+  });
+}
+
+function toWav(srcPath) {
+  return new Promise(function(resolve, reject) {
+    if (!fs.existsSync(TMP_PATH)) {
+      fs.mkdirSync(TMP_PATH);
+    }
+
+    const dstPath = path.join(TMP_PATH, `${path.basename(srcPath, path.extname(srcPath))}.wav`);
+
+    // remove old file
+    if (fs.existsSync(dstPath)) {
+      fs.unlinkSync(dstPath);
+    }
+
+    // convert mp3 to wav
+    ffmpeg(srcPath)
+      .output(dstPath)
+      .on('error', function(err) {
+        reject(err);
+      })
+      .on('end', function(stdout, stderr) {
+        resolve(dstPath);
+      })
+      .run();
+  });
+}
+
+function toOgg(srcPath) {
+  return new Promise(function(resolve, reject) {
+    // ffmpeg -i input.wav -c:a libvorbis -qscale:a 10 output.ogg
+    const dstPath = path.join(TMP_PATH, `${path.basename(srcPath, path.extname(srcPath))}.ogg`);
+
+    ffmpeg(srcPath)
+      .audioCodec('libvorbis')
+      // .audioBitrate('320k') // fix
+      .audioBitrate(192) // fix
+      .audioQuality(7)
+      .output(dstPath)
+      .on('error', function(err) {
+        reject(err);
+      })
+      .on('end', function(stdout, stderr) {
+        resolve(dstPath);
+      })
+      .run();
+  });
+}
+
+async function generate(srcPath) {
+  let songName = path.basename(srcPath, path.extname(srcPath));
+  let authorName = "Unknown";
+  const metadata = await getMetadata(srcPath);
+  if (metadata && metadata.format && metadata.format.tags) {
+    const tags = metadata.format.tags;
+    if (tags.title) {
+      songName = tags.title;
+    }
+    if (tags.artist) {
+      authorName = tags.artist;
+    }
+  }
+
+  const wavPath = await toWav(srcPath);
+  const wavBuffer = fs.readFileSync(wavPath);
+
+  // check output directory
+  if (!fs.existsSync(OUTPUT_PATH)) {
+    fs.mkdirSync(OUTPUT_PATH);
+  }
+
+  const data = wav.decode(wavBuffer);
+  const { tempo } = wav.analyze(data.channelData, data.sampleRate, data.sampleRate * 0.5);
+  const bpm = tempo;
+  const info = createInfo(songName, authorName, bpm);
+  const difficulties = ["easy", "normal", "hard", "expert", "expertPlus"];
+  let dirName = `${songName.replace(/[/\\?%*:|"<>]/g, '_')}`;
+  let dirIndex = 0;
+  let dirPath = path.join(OUTPUT_PATH, dirName);
+  while(fs.existsSync(dirPath)) {
+    dirIndex += 1;
+    dirName = `${songName.replace(/[/\\?%*:|"<>]/g, '_')} (${dirIndex})`;
+    dirPath = path.join(OUTPUT_PATH, dirName);
+  }
+
+  // create directory
+  if (!fs.existsSync(dirPath)) {
+    fs.mkdirSync(dirPath);
+  }
+  
+  for (let i = 0; i < difficulties.length; i++) {
+    const difficulty = difficulties[i];
+    const level = createLevel();
+    const {colorNotes, bombNotes, obstacles, sliders, burstSliders} = level;
+    const volumeThreshold = BEAT_VOLUME_THRESHOLD_LIST[i];
+    const noteThreshold = BEAT_NOTE_THRESHOLD_LIST[i];
+    const connectSpacing = CONNECT_SPACING_LIST[i];
+    const beatSpacing = BEAT_SPACING_LIST[i];
+    const typeSpacing = TYPE_SPACING_LIST[i];
+    const step = BEAT_STEP_LIST[i];
+    const { beats } = wav.analyze(data.channelData, data.sampleRate, data.sampleRate * step);
+
+    let beatTimes = [];
+    for (const beat of beats) {
+      // remove low volume
+      if (beat.value < volumeThreshold) {
+        continue;
+      }
+      // convert beat time
+      let time = beat.time * (bpm / 60);
+      time = Math.round(time / beatSpacing) * beatSpacing;
+
+      // remove dupe
+      if (beatTimes.indexOf(time) === -1) {
+        beatTimes.push(time);
+      }
+    }
+
+    // create notes
+    let countLeftConnectedNotes = 0;
+    let countRightConnectedNotes = 0;
+    let countLeftNotes = 0;
+    let countRightNotes = 0;
+
+    for (let j = 0; j < beatTimes.length; j++) {
+      const beat = beatTimes[j];
+      let prevLeftNote = getPrevLeftNote(colorNotes);
+      let prevRightNote = getPrevRightNote(colorNotes);
+      let isLeftConnected = prevLeftNote && beat - prevLeftNote.b <= connectSpacing;
+      let isRightConnected = prevRightNote && beat - prevRightNote.b <= connectSpacing;
+      let enableLeftHand = Math.random() < noteThreshold && (!prevLeftNote || beat - prevLeftNote.b >= typeSpacing);
+      let enableRightHand = Math.random() < noteThreshold && (!prevRightNote || beat - prevRightNote.b >= typeSpacing);
+      let isLeftFirst = Math.random() < 0.5;
+      let leftNote, rightNote;
+
+      if (isLeftFirst) {
+        if (enableLeftHand) {
+          countLeftNotes += 1;
+          countLeftConnectedNotes += isLeftConnected ? 1 : 0;
+
+          leftNote = createNextLeftNote(beat, isLeftConnected ? prevLeftNote : null);
+          let count = 0;
+          while(!chkSamePosition(leftNote, prevRightNote)) {
+            leftNote = createNextLeftNote(beat, isLeftConnected ? prevLeftNote : null);
+            count += 1;
+            if (count > 100) {
+              countLeftNotes -= 1;
+              countLeftConnectedNotes -= isLeftConnected ? 1 : 0
+              leftNote = undefined;
+              break;
+            }
+          }
+        }
+        if (enableRightHand) {
+          countRightNotes += 1;
+          countRightConnectedNotes += isRightConnected ? 1 : 0;
+
+          rightNote = createNextRightNote(beat, isRightConnected ? prevRightNote : null);
+          let count = 0;
+          while(!chkSamePosition(rightNote, prevLeftNote) || !chkDupeNotes(leftNote, rightNote)) {
+            rightNote = createNextRightNote(beat, isRightConnected ? prevRightNote : null);
+            count += 1;
+            if (count > 100) {
+              countRightNotes -= 1;
+              countRightConnectedNotes -= isRightConnected ? 1 : 0
+              rightNote = undefined;
+              break;
+            }
+          }
+        }
+      } else {
+        if (enableRightHand) {
+          countRightNotes += 1;
+          countRightConnectedNotes += isRightConnected ? 1 : 0;
+
+          rightNote = createNextRightNote(beat, isRightConnected ? prevRightNote : null);
+          let count = 0;
+          while(!chkSamePosition(rightNote, prevLeftNote)) {
+            rightNote = createNextRightNote(beat, isRightConnected ? prevRightNote : null);
+            count += 1;
+            if (count > 100) {
+              countRightNotes -= 1;
+              countRightConnectedNotes -= isRightConnected ? 1 : 0
+              rightNote = undefined;
+              break;
+            }
+          }
+        }
+        if (enableLeftHand) {
+          countLeftNotes += 1;
+          countLeftConnectedNotes += isLeftConnected ? 1 : 0;
+
+          leftNote = createNextLeftNote(beat, isLeftConnected ? prevLeftNote : null);
+          let count = 0;
+          while(!chkSamePosition(leftNote, prevRightNote) || !chkDupeNotes(leftNote, rightNote)) {
+            leftNote = createNextLeftNote(beat, isLeftConnected ? prevLeftNote : null);
+            count += 1;
+            if (count > 100) {
+              countLeftNotes -= 1;
+              countLeftConnectedNotes -= isLeftConnected ? 1 : 0
+              leftNote = undefined;
+              break;
+            }
+          }
+        }
+      }
+
+      if (leftNote) {
+        colorNotes.push(leftNote);
+      }
+      
+      if (rightNote) {
+        colorNotes.push(rightNote);
+      }
+    }
+
+    // debug
+    console.log(`> ${songName}`);
+    console.log(`> ${difficulty}:`);
+    // console.log(`> Total ${colorNotes.length} notes`);
+    console.log(`> ${countLeftNotes} left notes, ${countLeftConnectedNotes} connected.`);
+    console.log(`> ${countRightNotes} right notes, ${countRightConnectedNotes} connected.`);
+    console.log(`> ${bombNotes.length} bombs.`);
+    console.log(`> ${obstacles.length} obstacles.`);
+    console.log(`> ${sliders.length} sliders.`);
+    console.log(`> ${burstSliders.length} burst sliders.\n`);
+
+    // add diff to info
+    const diff = addDiff(info, difficulty);
+    const filename = diff._beatmapFilename;
+
+    // save level.dat
+    fs.writeFileSync(path.join(dirPath, filename), JSON.stringify(level), { encoding: "utf8" });
+  }
+
+  // copy cover.jpg
+  try {
+    const { data, format } = await getCover(srcPath);
+    const buffer = Buffer.from(data);
+    let coverName;
+    if (format === "image/jpeg" || format === "image/jpg") {
+      coverName = "cover.jpg";
+    } else if (format === "image/png") {
+      coverName = "cover.png";
+    } else {
+      throw new Error("Cover type not supported.");
+    }
+    fs.writeFileSync(path.join(dirPath, coverName), buffer, { encoding: "utf8" });
+    info._coverImageFilename = coverName;
+  } catch(err) {
+    // console.error(err);
+    fs.copyFileSync(COVER_PATH, path.join(dirPath, "cover.jpg"));
+    info._coverImageFilename = "cover.jpg";
+  }
+
+  // save info.dat
+  fs.writeFileSync(path.join(dirPath, "info.dat"), JSON.stringify(info, null, 2), { encoding: "utf8" });
+
+  // create song.egg
+  const oggPath = await toOgg(wavPath);
+  fs.renameSync(oggPath, path.join(dirPath, "song.egg"));
+
+  // remove wav
+  if (fs.existsSync(wavPath)) {
+    fs.unlinkSync(wavPath);
+  }
+}
+
+// esm
+export default {
+  setFfmpegPath: ffmpeg.setFfmpegPath,
+  setFfprobePath: ffmpeg.setFfprobePath,
+  generate: generate,
+}
+
+// cjs
+// module.exports = {
+//   sum: sum,
+//   test: test,
+// }
+
+// browser
+// if (window.myModule === undefined) {
+//   window.myModule = {
+//     sum: sum,
+//     test: test,
+//   };
+// }
