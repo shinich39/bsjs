@@ -4,7 +4,7 @@ Generate Beat Saber custom map in javascript.
 
 This library for generate pre-map.
 
-Generate v3 map, only color notes.
+Generate v3 map, only color notes, only standard mode.
 
 Please edit map to editor when after generate. (chroMapper...)
 
@@ -45,6 +45,8 @@ npm install
 ```console
 npm start
 ```
+
+/bsjs/output
 
 ## References
 
