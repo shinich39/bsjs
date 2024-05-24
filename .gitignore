@@ -516,3 +516,4 @@ Dependencies/
 test/
 tmp/
 output/
+input/*.mp3

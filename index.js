@@ -19,12 +19,12 @@ const MAP_VERSION = '3.0.0';
 
 // const BEAT_STEP_LIST = [0.5, 0.4, 0.3, 0.2, 0.1];
 const BEAT_STEP_LIST = [0.5, 0.4, 0.3, 0.25, 0.2];
-const BEAT_VOLUME_THRESHOLD_LIST = [0.5, 0.4, 0.3, 0.2, 0.1];
+const BEAT_VOLUME_THRESHOLD_LIST = [0.5, 0.5, 0.5, 0.5, 0.5];
 const NOTE_THRESHOLD_LIST = [0.3, 0.4, 0.5, 0.6, 0.7];
 const OBSTACLE_THRESHOLD_LIST = [0.030, 0.035, 0.040, 0.045, 0.050];
 const BEAT_SPACING_LIST = [0.25, 0.25, 0.25, 0.25, 0.25]; // 1/4 beat
-const TYPE_SPACING_LIST = [0.5, 0.45, 0.4, 0.35, 0.3]; // beats
-const CONNECT_SPACING_LIST = [1.5, 1.5, 1.25, 1, 1]; // beats
+const TYPE_SPACING_LIST = [0.5, 0.40, 0.35, 0.30, 0.25]; // beats
+const CONNECT_SPACING_LIST = [2, 1.75, 1.50, 1.25, 1]; // beats
 const OBSTACLE_SPACING_LIST = [20, 17, 15, 13, 10]; // beats
 
 const POSITIONS = [
@@ -418,7 +418,7 @@ function getNextDirectionIndex(d) {
     case 1: return jsutl.choose([7,7,7,6,8]);
     case 2: return jsutl.choose([6,6,6,3,7]);
     case 3: return jsutl.choose([5,5,5,2,8]);
-    case 4: return jsutl.choose([4,4,4,4,4,4,4,4,0,1,2,3,5,6,7,8]);
+    case 4: return jsutl.choose([4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,0,1,2,3,5,6,7,8]);
     case 5: return jsutl.choose([3,3,3,0,6]);
     case 6: return jsutl.choose([2,2,2,1,5]);
     case 7: return jsutl.choose([1,1,1,0,2]);
@@ -480,33 +480,33 @@ function getPrevObstacle(obstacles) {
 }
 
 // [
-//   2,2,  1, x,
-//   3,1-9,2, x,
-//   3,3,  1, x,
+//   2,2,   1, x,
+//   3,1-18,2, x,
+//   3,3,   1, x,
 // ]
 function getNextLeftPositionIndex(p) {
   let factors = [p];
 
   if (isDigonalPosition(p, p-5)) {
-    factors.push(p,p-5,p-5);
+    factors.push(p,p,p-5,p-5);
   }
   if (isSameCol(p, p-4)) {
-    factors.push(p,p-4,p-4);
+    factors.push(p,p,p-4,p-4);
   }
   if (isDigonalPosition(p, p-3)) {
     factors.push(p,p-3);
   }
   if (isSameRow(p, p-1)) {
-    factors.push(p,p-1,p-1,p-1);
+    factors.push(p,p,p,p-1,p-1,p-1);
   }
   if (isSameRow(p, p+1)) {
-    factors.push(p,p+1,p+1);
+    factors.push(p,p,p+1,p+1);
   }
   if (isDigonalPosition(p, p+3)) {
-    factors.push(p,p+3,p+3,p+3);
+    factors.push(p,p,p,p+3,p+3,p+3);
   }
   if (isSameCol(p, p+4)) {
-    factors.push(p,p+4,p+4,p+4);
+    factors.push(p,p,p,p+4,p+4,p+4);
   }
   if (isDigonalPosition(p, p+5)) {
     factors.push(p,p+5);
@@ -520,9 +520,9 @@ function getNextLeftPositionIndex(p) {
 }
 
 // [
-//   1,2,  2, x,
-//   2,1-9,3, x,
-//   1,3,  3, x,
+//   1,2,   2, x,
+//   2,1-18,3, x,
+//   1,3,   3, x,
 // ]
 function getNextRightPositionIndex(p) {
   let factors = [p];
@@ -531,25 +531,25 @@ function getNextRightPositionIndex(p) {
     factors.push(p,p-5);
   }
   if (isSameCol(p, p-4)) {
-    factors.push(p,p-4,p-4);
+    factors.push(p,p,p-4,p-4);
   }
   if (isDigonalPosition(p, p-3)) {
-    factors.push(p,p-3,p-3);
+    factors.push(p,p,p-3,p-3);
   }
   if (isSameRow(p, p-1)) {
-    factors.push(p,p-1,p-1);
+    factors.push(p,p,p-1,p-1);
   }
   if (isSameRow(p, p+1)) {
-    factors.push(p,p+1,p+1,p+1);
+    factors.push(p,p,p,p+1,p+1,p+1);
   }
   if (isDigonalPosition(p, p+3)) {
     factors.push(p,p+3);
   }
   if (isSameCol(p, p+4)) {
-    factors.push(p,p+4,p+4,p+4);
+    factors.push(p,p,p,p+4,p+4,p+4);
   }
   if (isDigonalPosition(p, p+5)) {
-    factors.push(p,p+5,p+5,p+5);
+    factors.push(p,p,p,p+5,p+5,p+5);
   }
   
   factors = factors.filter(function(f) {
@@ -586,21 +586,27 @@ function createFormattedObstacle(beat) {
   let formats = [
     {x: 0, y: 0, w: 1, h: 4, d: 5}, // left
     {x: 0, y: 0, w: 1, h: 4, d: 5}, // left
+    {x: 0, y: 0, w: 1, h: 4, d: 5}, // left
     {x: 0, y: 0, w: 2, h: 4, d: 5}, // left
+    {x: 3, y: 0, w: 1, h: 4, d: 5}, // right
     {x: 3, y: 0, w: 1, h: 4, d: 5}, // right
     {x: 3, y: 0, w: 1, h: 4, d: 5}, // right
     {x: 2, y: 0, w: 2, h: 4, d: 5}, // right
 
     {x: 0, y: 0, w: 1, h: 4, d: 7}, // left
     {x: 0, y: 0, w: 1, h: 4, d: 7}, // left
+    {x: 0, y: 0, w: 1, h: 4, d: 7}, // left
     {x: 0, y: 0, w: 2, h: 4, d: 7}, // left
+    {x: 3, y: 0, w: 1, h: 4, d: 7}, // right
     {x: 3, y: 0, w: 1, h: 4, d: 7}, // right
     {x: 3, y: 0, w: 1, h: 4, d: 7}, // right
     {x: 2, y: 0, w: 2, h: 4, d: 7}, // right
 
     {x: 0, y: 0, w: 1, h: 4, d: 9}, // left
     {x: 0, y: 0, w: 1, h: 4, d: 9}, // left
+    {x: 0, y: 0, w: 1, h: 4, d: 9}, // left
     {x: 0, y: 0, w: 2, h: 4, d: 9}, // left
+    {x: 3, y: 0, w: 1, h: 4, d: 9}, // right
     {x: 3, y: 0, w: 1, h: 4, d: 9}, // right
     {x: 3, y: 0, w: 1, h: 4, d: 9}, // right
     {x: 2, y: 0, w: 2, h: 4, d: 9}, // right
