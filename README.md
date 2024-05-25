@@ -6,7 +6,7 @@ This library for generate pre-map.
 
 Generate v3 map, only color notes, only standard mode.
 
-Please edit map to editor when after generate. (chroMapper...)
+Please edit map to editor when after generate. (e.g. chroMapper)
 
 ## Requirement
 

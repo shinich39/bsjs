@@ -17,7 +17,6 @@ const OUTPUT_PATH = path.join(__dirname, "output");
 const INFO_VERSION = '2.0.0';
 const MAP_VERSION = '3.0.0';
 
-// const BEAT_STEP_LIST = [0.5, 0.4, 0.3, 0.2, 0.1];
 const BEAT_STEP_LIST = [0.5, 0.4, 0.3, 0.25, 0.2];
 const BEAT_VOLUME_THRESHOLD_LIST = [0.5, 0.5, 0.5, 0.5, 0.5];
 const NOTE_THRESHOLD_LIST = [0.3, 0.4, 0.5, 0.6, 0.7];
