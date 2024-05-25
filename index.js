@@ -23,12 +23,12 @@ const MAP_VERSION = '3.0.0';
 const DIFFICULTY_OPTIONS = {
   easy: {
     step: 0.5,
-    minVolume: 0.5,
-    noteSpawnRate: 0.3,
+    minVolume: 0.25,
+    noteSpawnRate: 0.5,
     bombSpawnRate: 0,
-    obstacleSpawnRate: 0.030,
+    obstacleSpawnRate: 0.01,
     beatSpacing: 0.25,
-    noteSpacing: 0.50,
+    noteSpacing: 1,
     noteConnectSpacing: 2,
     obstacleSpacing: 20,
     obstacleDisappearSpacing: 0.25,
@@ -36,12 +36,12 @@ const DIFFICULTY_OPTIONS = {
   },
   normal: {
     step: 0.4,
-    minVolume: 0.5,
-    noteSpawnRate: 0.4,
+    minVolume: 0.25,
+    noteSpawnRate: 0.5,
     bombSpawnRate: 0,
-    obstacleSpawnRate: 0.035,
+    obstacleSpawnRate: 0.01,
     beatSpacing: 0.25,
-    noteSpacing: 0.50,
+    noteSpacing: 0.75,
     noteConnectSpacing: 1.75,
     obstacleSpacing: 17.5,
     obstacleDisappearSpacing: 0.25,
@@ -49,36 +49,36 @@ const DIFFICULTY_OPTIONS = {
   },
   hard: {
     step: 0.3,
-    minVolume: 0.5,
+    minVolume: 0.25,
     noteSpawnRate: 0.5,
     bombSpawnRate: 0,
-    obstacleSpawnRate: 0.040,
+    obstacleSpawnRate: 0.01,
     beatSpacing: 0.25,
-    noteSpacing: 0.45,
+    noteSpacing: 0.25,
     noteConnectSpacing: 1.5,
     obstacleSpacing: 15,
     obstacleDisappearSpacing: 0.25,
     bombDisappearSpacing: 0.25,
   },
   expert: {
-    step: 0.25,
-    minVolume: 0.5,
-    noteSpawnRate: 0.6,
+    step: 0.2,
+    minVolume: 0.25,
+    noteSpawnRate: 0.5,
     bombSpawnRate: 0,
-    obstacleSpawnRate: 0.045,
+    obstacleSpawnRate: 0.01,
     beatSpacing: 0.25,
-    noteSpacing: 0.325,
+    noteSpacing: 0.25,
     noteConnectSpacing: 1.25,
     obstacleSpacing: 12.5,
     obstacleDisappearSpacing: 0.25,
     bombDisappearSpacing: 0.25,
   },
   expertPlus: {
-    step: 0.2,
-    minVolume: 0.5,
-    noteSpawnRate: 0.7,
+    step: 0.125,
+    minVolume: 0.25,
+    noteSpawnRate: 0.5,
     bombSpawnRate: 0,
-    obstacleSpawnRate: 0.05,
+    obstacleSpawnRate: 0.01,
     beatSpacing: 0.25,
     noteSpacing: 0.25,
     noteConnectSpacing: 1,
@@ -113,70 +113,58 @@ const NOTE_DIRECTIONS = [
 ];
 
 const LEFT_NOTE_FORMATS = [
-  // primary
-  // [0,0], [0,1],
-  // [1,0], [1,1], [1,2],
-  // [2,2],
-  // [3,2],
-
-  [4,0], [4,3], [4,6],
-  [5,0], [5,1], [5,2], [5,3], [5,4], [5,5], [5,6], [5,7], [5,8],
-  // [6,2], [6,5],
-  // [7,5],
-
-  [8,6], [8,7],
-  [9,6], [9,7], [9,8],
-  // [10,8],
-  // [11,8],
-
-  // all
+  // top
+  [0,0], [0,1],
   [0,0], [0,1],
   [1,0], [1,1], [1,2],
   [2,2],
   // [3,2],
 
+  // middle
   [4,0], [4,3], [4,6],
+  [4,0], [4,3], [4,6],
+  [4,0], [4,3], [4,6],
+  [5,0], [5,1], [5,2], [5,3], [5,4], [5,5], [5,6], [5,7], [5,8],
+  [5,0], [5,1], [5,2], [5,3], [5,4], [5,5], [5,6], [5,7], [5,8],
   [5,0], [5,1], [5,2], [5,3], [5,4], [5,5], [5,6], [5,7], [5,8],
   [6,2], [6,5],
   // [7,5],
 
+  // bottom
   [8,6], [8,7],
+  [8,6], [8,7],
+  [8,6], [8,7],
+  [9,6], [9,7], [9,8],
   [9,6], [9,7], [9,8],
   [10,8],
   // [11,8],
 ];
 
 const RIGHT_NOTE_FORMATS = [
-  // primary
-  // [0,0], 
-  // [1,0],
-  // [2,0], [2,1], [2,2],
-  // [3,1], [3,2],
-
-  // [4,3],
-  // [5,0], [5,3],
-  [6,0], [6,1], [6,2], [6,3], [6,5], [6,6], [6,7], [6,8],
-  [7,2], [7,5], [7,8],
-  
-  // [8,6],
-  // [9,6],
-  [10,6], [10,7], [10,8],
-  [11,7], [11,8],
-
-  // all
+  // top
   // [0,0], 
   [1,0],
   [2,0], [2,1], [2,2],
   [3,1], [3,2],
+  [3,1], [3,2],
 
+  // middle
   // [4,3],
   [5,0], [5,3],
   [6,0], [6,1], [6,2], [6,3], [6,5], [6,6], [6,7], [6,8],
+  [6,0], [6,1], [6,2], [6,3], [6,5], [6,6], [6,7], [6,8],
+  [6,0], [6,1], [6,2], [6,3], [6,5], [6,6], [6,7], [6,8],
+  [7,2], [7,5], [7,8],
+  [7,2], [7,5], [7,8],
   [7,2], [7,5], [7,8],
   
+  // bottom
   // [8,6],
   [9,6],
   [10,6], [10,7], [10,8],
+  [10,6], [10,7], [10,8],
+  [11,7], [11,8],
+  [11,7], [11,8],
   [11,7], [11,8],
 ];
 
@@ -507,7 +495,7 @@ function getNextDirectionIndex(d) {
     case 1: return jsutl.choose([7,7,7,6,8]);
     case 2: return jsutl.choose([6,6,6,3,7]);
     case 3: return jsutl.choose([5,5,5,2,8]);
-    case 4: return jsutl.choose([4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,0,1,2,3,5,6,7,8]);
+    case 4: return jsutl.choose([4,4,4,4,4,4,4,4,1,3,5,7]);
     case 5: return jsutl.choose([3,3,3,0,6]);
     case 6: return jsutl.choose([2,2,2,1,5]);
     case 7: return jsutl.choose([1,1,1,0,2]);
@@ -569,20 +557,20 @@ function getPrevObstacle(obstacles) {
 }
 
 // [
-//   2,2,   1, x,
-//   3,1-18,2, x,
-//   3,3,   1, x,
+//   2,1,   1, x,
+//   3,~17, 1, x,
+//   4,3,   2, x,
 // ]
 function getNextLeftPositionIndex(p) {
-  let factors = [p];
+  let factors = [];
 
   if (isDigonalPosition(p, p-5)) {
     factors.push(p,p);
     factors.push(p-5,p-5);
   }
   if (isSameCol(p, p-4)) {
-    factors.push(p,p);
-    factors.push(p-4,p-4);
+    factors.push(p);
+    factors.push(p-4);
   }
   if (isDigonalPosition(p, p-3)) {
     factors.push(p);
@@ -593,20 +581,20 @@ function getNextLeftPositionIndex(p) {
     factors.push(p-1,p-1,p-1);
   }
   if (isSameRow(p, p+1)) {
-    factors.push(p,p);
-    factors.push(p+1,p+1);
+    factors.push(p);
+    factors.push(p+1);
   }
   if (isDigonalPosition(p, p+3)) {
-    factors.push(p,p,p);
-    factors.push(p+3,p+3,p+3);
+    factors.push(p,p,p,p);
+    factors.push(p+3,p+3,p+3,p+3);
   }
   if (isSameCol(p, p+4)) {
     factors.push(p,p,p);
     factors.push(p+4,p+4,p+4);
   }
   if (isDigonalPosition(p, p+5)) {
-    factors.push(p);
-    factors.push(p+5);
+    factors.push(p,p);
+    factors.push(p+5,p+5);
   }
 
   factors = factors.filter(function(f) {
@@ -617,44 +605,44 @@ function getNextLeftPositionIndex(p) {
 }
 
 // [
-//   1,2,   2, x,
-//   2,1-18,3, x,
-//   1,3,   3, x,
+//   1,1,   2, x,
+//   1,~17 ,3, x,
+//   2,3,   4, x,
 // ]
 function getNextRightPositionIndex(p) {
-  let factors = [p];
+  let factors = [];
 
   if (isDigonalPosition(p, p-5)) {
     factors.push(p);
     factors.push(p-5);
   }
   if (isSameCol(p, p-4)) {
-    factors.push(p,p);
-    factors.push(p-4,p-4);
+    factors.push(p);
+    factors.push(p-4);
   }
   if (isDigonalPosition(p, p-3)) {
     factors.push(p,p);
     factors.push(p-3,p-3);
   }
   if (isSameRow(p, p-1)) {
-    factors.push(p,p);
-    factors.push(p-1,p-1);
+    factors.push(p);
+    factors.push(p-1);
   }
   if (isSameRow(p, p+1)) {
     factors.push(p,p,p);
     factors.push(p+1,p+1,p+1);
   }
   if (isDigonalPosition(p, p+3)) {
-    factors.push(p);
-    factors.push(p+3);
+    factors.push(p,p);
+    factors.push(p+3,p+3);
   }
   if (isSameCol(p, p+4)) {
     factors.push(p,p,p);
     factors.push(p+4,p+4,p+4);
   }
   if (isDigonalPosition(p, p+5)) {
-    factors.push(p,p,p);
-    factors.push(p+5,p+5,p+5);
+    factors.push(p,p,p,p);
+    factors.push(p+5,p+5,p+5,p+5);
   }
   
   factors = factors.filter(function(f) {
@@ -934,7 +922,7 @@ async function generate(srcPath) {
       bombDisappearSpacing,
     } = DIFFICULTY_OPTIONS[difficulty];
 
-    const { beats } = wav.analyze(data.channelData, data.sampleRate, data.sampleRate * step);
+    const { beats } = wav.analyze(data.channelData, data.sampleRate, Math.round(data.sampleRate * step));
 
     let beatTimes = [];
     for (const beat of beats) {
@@ -947,11 +935,34 @@ async function generate(srcPath) {
       let time = beat.time * (bpm / 60);
       time = Math.round(time / beatSpacing) * beatSpacing;
 
-      // remove dupe
-      if (beatTimes.indexOf(time) === -1) {
-        beatTimes.push(time);
+      // add beat time
+      let beatTime = beatTimes.find(function(item) {
+        return item.beat === time;
+      });
+
+      if (!beatTime) {
+        beatTimes.push({
+          beat: time,
+          volume: beat.value,
+          countBeats: 1
+        });
+      } else {
+        beatTime.countBeats += 1;
+        if (beatTime.volume < beat.value) {
+          beatTime.volume = beat.value;
+        }
       }
     }
+
+    // debug
+    // console.log("COUNT_BEATS", beatTimes.reduce(function(p, c) {
+    //   if (!p[c.countBeats]) {
+    //     p[c.countBeats] = 1;
+    //   } else {
+    //     p[c.countBeats] += 1;
+    //   }
+    //   return p;
+    // }, {}));
 
     // create notes
     let countLeftConnectedNotes = 0;
@@ -959,7 +970,7 @@ async function generate(srcPath) {
     let countLeftNotes = 0;
     let countRightNotes = 0;
     for (let j = 0; j < beatTimes.length; j++) {
-      const beat = beatTimes[j];
+      let { beat, countBeats, volume } = beatTimes[j];
       let prevObstacle = getPrevObstacle(obstacles);
       let prevLeftNote = getPrevLeftNote(colorNotes);
       let prevRightNote = getPrevRightNote(colorNotes);
@@ -967,26 +978,41 @@ async function generate(srcPath) {
       let currObstacle = isObstacleExists ? prevObstacle : null;
       let isLeftConnected = prevLeftNote && beat - prevLeftNote.b <= noteConnectSpacing;
       let isRightConnected = prevRightNote && beat - prevRightNote.b <= noteConnectSpacing;
-      let enableObstacle = Math.random() < obstacleSpawnRate && (!prevObstacle || beat >= (prevObstacle.b + prevObstacle.d) + obstacleSpacing);
-      let enableLeftHand = Math.random() < noteSpawnRate && (!prevLeftNote || beat - prevLeftNote.b >= noteSpacing);
-      let enableRightHand = Math.random() < noteSpawnRate && (!prevRightNote || beat - prevRightNote.b >= noteSpacing);
+      let createObstacle = false;
+      let createLeftHand = false;
+      let createRightHand = false;
       let isLeftFirst = Math.random() < 0.5;
-      let currLeftNote, currRightNote;
-      let count = 0;
+      let currLeftNote;
+      let currRightNote;
+      let countCreations = countBeats;
+      let countErrors = 0;
 
-      if (enableObstacle) {
+      while(countCreations > 0) {
+        if (!createLeftHand) {
+          createLeftHand = Math.random() < (volume * noteSpawnRate) && (!prevLeftNote || beat - prevLeftNote.b >= noteSpacing);
+        }
+        if (!createRightHand) {
+          createRightHand = Math.random() < (volume * noteSpawnRate) && (!prevRightNote || beat - prevRightNote.b >= noteSpacing);
+        }
+        if (!createObstacle) {
+          createObstacle = Math.random() < obstacleSpawnRate && (!prevObstacle || beat >= (prevObstacle.b + prevObstacle.d) + obstacleSpacing);
+        }
+        countCreations--;
+      }
+
+      if (createObstacle) {
         currObstacle = createVerticalObstacle(beat);
         obstacles.push(currObstacle);
       }
 
       if (isLeftFirst) {
-        if (enableLeftHand) {
+        if (createLeftHand) {
           currLeftNote = createNextLeftNote(beat, isLeftConnected ? prevLeftNote : null);
-          count = 0;
+          countErrors = 0;
           while(chkOverlappedObstacle(currObstacle, currLeftNote) || chkSamePosition(currLeftNote, prevRightNote)) {
             currLeftNote = createNextLeftNote(beat, isLeftConnected ? prevLeftNote : null);
-            count += 1;
-            if (count > 390) {
+            countErrors += 1;
+            if (countErrors > 390) {
               currLeftNote = undefined;
               break;
             }
@@ -997,38 +1023,38 @@ async function generate(srcPath) {
             countLeftConnectedNotes += isLeftConnected ? 1 : 0;
           }
         }
-        if (enableRightHand) {
+        if (createRightHand) {
           currRightNote = createNextRightNote(beat, isRightConnected ? prevRightNote : null);
-          count = 0;
+          countErrors = 0;
           while(chkOverlappedObstacle(currObstacle, currRightNote) || chkSamePosition(currRightNote, prevLeftNote) || chkDupeNotes(currLeftNote, currRightNote)) {
             currRightNote = createNextRightNote(beat, isRightConnected ? prevRightNote : null);
-            count += 1;
-            if (count > 390) {
+            countErrors += 1;
+            if (countErrors > 390) {
               currRightNote = undefined;
               break;
             }
           }
         }
       } else {
-        if (enableRightHand) {
+        if (createRightHand) {
           currRightNote = createNextRightNote(beat, isRightConnected ? prevRightNote : null);
-          count = 0;
+          countErrors = 0;
           while(chkOverlappedObstacle(currObstacle, currRightNote) || chkSamePosition(currRightNote, prevLeftNote)) {
             currRightNote = createNextRightNote(beat, isRightConnected ? prevRightNote : null);
-            count += 1;
-            if (count > 390) {
+            countErrors += 1;
+            if (countErrors > 390) {
               currRightNote = undefined;
               break;
             }
           }
         }
-        if (enableLeftHand) {
+        if (createLeftHand) {
           currLeftNote = createNextLeftNote(beat, isLeftConnected ? prevLeftNote : null);
-          count = 0;
+          countErrors = 0;
           while(chkOverlappedObstacle(currObstacle, currLeftNote) || chkSamePosition(currLeftNote, prevRightNote) || chkDupeNotes(currLeftNote, currRightNote)) {
             currLeftNote = createNextLeftNote(beat, isLeftConnected ? prevLeftNote : null);
-            count += 1;
-            if (count > 390) {
+            countErrors += 1;
+            if (countErrors > 390) {
               currLeftNote = undefined;
               break;
             }
