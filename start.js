@@ -9,20 +9,24 @@ const INPUT_PATH = path.join(__dirname, "input");
 
 ;(async function() {
   let startedAt = Date.now();
+  let count = 0;
   for (const file of fs.readdirSync(INPUT_PATH)) {
     if ([".wav", ".mp3", ".ogg"].indexOf(path.extname(file)) === -1) {
-      console.error(`> Not supported: ${file}`);
+      // console.error(`> Not supported: ${file}`);
       continue;
     }
     try {
       const filePath = path.join(INPUT_PATH, file);
-      console.log(`> Start generating: ${file}`);
+      // console.log(`> Start generating: ${file}`);
       await bs.generate(filePath);
-      console.log(`> Complete generating: ${file} [${Math.floor(Date.now() - startedAt) / 1000} ms]`);
+      count++;
     } catch(err) {
-      console.error(`> Error ocurred: ${file}, ${err.message}`);
+      console.error(err);
+      // console.error(`> Error ocurred: ${file}, ${err.message}`);
       // console.error(err);
     }
   }
+
+  console.log(`> Complete generating ${count} files in ${Math.floor(Date.now() - startedAt) / 1000} ms.`);
 })();
 
