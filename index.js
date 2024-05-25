@@ -15,16 +15,78 @@ const COVER_PATH = path.join(__dirname, "cover.jpg");
 const OUTPUT_PATH = path.join(__dirname, "output");
 
 const INFO_VERSION = '2.0.0';
-const MAP_VERSION = '3.0.0';
+const PREVIEW_START_TIME = 10;
+const PREVIEW_DURATION = 30;
 
-const BEAT_STEP_LIST = [0.5, 0.4, 0.3, 0.25, 0.2];
-const BEAT_VOLUME_THRESHOLD_LIST = [0.5, 0.5, 0.5, 0.5, 0.5];
-const NOTE_THRESHOLD_LIST = [0.3, 0.4, 0.5, 0.6, 0.7];
-const OBSTACLE_THRESHOLD_LIST = [0.030, 0.035, 0.040, 0.045, 0.050];
-const BEAT_SPACING_LIST = [0.25, 0.25, 0.25, 0.25, 0.25]; // 1/4 beat
-const TYPE_SPACING_LIST = [0.5, 0.40, 0.35, 0.30, 0.25]; // beats
-const CONNECT_SPACING_LIST = [2, 1.75, 1.50, 1.25, 1]; // beats
-const OBSTACLE_SPACING_LIST = [20, 17, 15, 13, 10]; // beats
+// [easy, normal, hard, expert, expertPlus]
+const MAP_VERSION = '3.0.0';
+const DIFFICULTY_OPTIONS = {
+  easy: {
+    step: 0.5,
+    minVolume: 0.5,
+    noteSpawnRate: 0.3,
+    bombSpawnRate: 0,
+    obstacleSpawnRate: 0.030,
+    beatSpacing: 0.25,
+    noteSpacing: 0.50,
+    noteConnectSpacing: 2,
+    obstacleSpacing: 20,
+    obstacleDisappearSpacing: 0.25,
+    bombDisappearSpacing: 0.25,
+  },
+  normal: {
+    step: 0.4,
+    minVolume: 0.5,
+    noteSpawnRate: 0.4,
+    bombSpawnRate: 0,
+    obstacleSpawnRate: 0.035,
+    beatSpacing: 0.25,
+    noteSpacing: 0.50,
+    noteConnectSpacing: 1.75,
+    obstacleSpacing: 17.5,
+    obstacleDisappearSpacing: 0.25,
+    bombDisappearSpacing: 0.25,
+  },
+  hard: {
+    step: 0.3,
+    minVolume: 0.5,
+    noteSpawnRate: 0.5,
+    bombSpawnRate: 0,
+    obstacleSpawnRate: 0.040,
+    beatSpacing: 0.25,
+    noteSpacing: 0.45,
+    noteConnectSpacing: 1.5,
+    obstacleSpacing: 15,
+    obstacleDisappearSpacing: 0.25,
+    bombDisappearSpacing: 0.25,
+  },
+  expert: {
+    step: 0.25,
+    minVolume: 0.5,
+    noteSpawnRate: 0.6,
+    bombSpawnRate: 0,
+    obstacleSpawnRate: 0.045,
+    beatSpacing: 0.25,
+    noteSpacing: 0.325,
+    noteConnectSpacing: 1.25,
+    obstacleSpacing: 12.5,
+    obstacleDisappearSpacing: 0.25,
+    bombDisappearSpacing: 0.25,
+  },
+  expertPlus: {
+    step: 0.2,
+    minVolume: 0.5,
+    noteSpawnRate: 0.7,
+    bombSpawnRate: 0,
+    obstacleSpawnRate: 0.05,
+    beatSpacing: 0.25,
+    noteSpacing: 0.25,
+    noteConnectSpacing: 1,
+    obstacleSpacing: 10,
+    obstacleDisappearSpacing: 0.25,
+    bombDisappearSpacing: 0.25,
+  },
+}
 
 const POSITIONS = [
   0,1,2,3,
@@ -119,7 +181,32 @@ const RIGHT_NOTE_FORMATS = [
 ];
 
 const OBSTACLE_FORMATS = [
+  {x: 0, y: 0, w: 1, h: 4, d: 5}, // left
+  {x: 0, y: 0, w: 1, h: 4, d: 5}, // left
+  {x: 0, y: 0, w: 1, h: 4, d: 5}, // left
+  {x: 0, y: 0, w: 2, h: 4, d: 5}, // left
+  {x: 3, y: 0, w: 1, h: 4, d: 5}, // right
+  {x: 3, y: 0, w: 1, h: 4, d: 5}, // right
+  {x: 3, y: 0, w: 1, h: 4, d: 5}, // right
+  {x: 2, y: 0, w: 2, h: 4, d: 5}, // right
 
+  {x: 0, y: 0, w: 1, h: 4, d: 7}, // left
+  {x: 0, y: 0, w: 1, h: 4, d: 7}, // left
+  {x: 0, y: 0, w: 1, h: 4, d: 7}, // left
+  {x: 0, y: 0, w: 2, h: 4, d: 7}, // left
+  {x: 3, y: 0, w: 1, h: 4, d: 7}, // right
+  {x: 3, y: 0, w: 1, h: 4, d: 7}, // right
+  {x: 3, y: 0, w: 1, h: 4, d: 7}, // right
+  {x: 2, y: 0, w: 2, h: 4, d: 7}, // right
+
+  {x: 0, y: 0, w: 1, h: 4, d: 9}, // left
+  {x: 0, y: 0, w: 1, h: 4, d: 9}, // left
+  {x: 0, y: 0, w: 1, h: 4, d: 9}, // left
+  {x: 0, y: 0, w: 2, h: 4, d: 9}, // left
+  {x: 3, y: 0, w: 1, h: 4, d: 9}, // right
+  {x: 3, y: 0, w: 1, h: 4, d: 9}, // right
+  {x: 3, y: 0, w: 1, h: 4, d: 9}, // right
+  {x: 2, y: 0, w: 2, h: 4, d: 9}, // right
 ]
 
 function createInfo(songName, authorName, bpm) {
@@ -133,12 +220,12 @@ function createInfo(songName, authorName, bpm) {
     '_songTimeOffset': 0,
     '_shuffle': 0,
     '_shufflePeriod': 0,
-    '_previewStartTime': 10,
-    '_previewDuration': 30,
+    '_previewStartTime': PREVIEW_START_TIME,
+    '_previewDuration': PREVIEW_DURATION,
     '_songFilename': 'song.egg',
     '_coverImageFilename': 'cover.jpg',
     '_environmentName': 'DefaultEnvironment',
-    // "_allDirectionsEnvironmentName": "GlassDesertEnvironment",
+    // "_allDirectionsEnvironmentName": "DefaultEnvironment",
     '_customData': {},
     '_difficultyBeatmapSets': []
   }
@@ -186,38 +273,7 @@ function addDiff(info, difficulty, offset = 0, characteristicName = "Standard") 
     _beatmapFilename: _beatmapFilename,
     _noteJumpMovementSpeed: _noteJumpMovementSpeed,
     _noteJumpStartBeatOffset: offset,
-    _customData: {
-      // "_editorOffset": 0,
-      // "_editorOldOffset": 0,
-      // "_suggestions": [
-      //   "Cinema"
-      // ],
-      // "_obstacleColor": {
-      //   "r": 1,
-      //   "g": 0,
-      //   "b": 0
-      // },
-      // "_envColorRightBoost": {
-      //   "r": 0.89,
-      //   "g": 0.396,
-      //   "b": 0.757
-      // },
-      // "_envColorLeftBoost": {
-      //   "r": 0.8,
-      //   "g": 0.91,
-      //   "b": 0.8
-      // },
-      // "_colorRight": {
-      //   "r": 0.125,
-      //   "g": 0.392,
-      //   "b": 0.659
-      // },
-      // "_colorLeft": {
-      //   "r": 0.753,
-      //   "g": 0.188,
-      //   "b": 0.188
-      // }
-    },
+    _customData: {},
 
     // v3
     // _beatmapColorSchemeIdx: 0,
@@ -521,28 +577,36 @@ function getNextLeftPositionIndex(p) {
   let factors = [p];
 
   if (isDigonalPosition(p, p-5)) {
-    factors.push(p,p,p-5,p-5);
+    factors.push(p,p);
+    factors.push(p-5,p-5);
   }
   if (isSameCol(p, p-4)) {
-    factors.push(p,p,p-4,p-4);
+    factors.push(p,p);
+    factors.push(p-4,p-4);
   }
   if (isDigonalPosition(p, p-3)) {
-    factors.push(p,p-3);
+    factors.push(p);
+    factors.push(p-3);
   }
   if (isSameRow(p, p-1)) {
-    factors.push(p,p,p,p-1,p-1,p-1);
+    factors.push(p,p,p);
+    factors.push(p-1,p-1,p-1);
   }
   if (isSameRow(p, p+1)) {
-    factors.push(p,p,p+1,p+1);
+    factors.push(p,p);
+    factors.push(p+1,p+1);
   }
   if (isDigonalPosition(p, p+3)) {
-    factors.push(p,p,p,p+3,p+3,p+3);
+    factors.push(p,p,p);
+    factors.push(p+3,p+3,p+3);
   }
   if (isSameCol(p, p+4)) {
-    factors.push(p,p,p,p+4,p+4,p+4);
+    factors.push(p,p,p);
+    factors.push(p+4,p+4,p+4);
   }
   if (isDigonalPosition(p, p+5)) {
-    factors.push(p,p+5);
+    factors.push(p);
+    factors.push(p+5);
   }
 
   factors = factors.filter(function(f) {
@@ -561,28 +625,36 @@ function getNextRightPositionIndex(p) {
   let factors = [p];
 
   if (isDigonalPosition(p, p-5)) {
-    factors.push(p,p-5);
+    factors.push(p);
+    factors.push(p-5);
   }
   if (isSameCol(p, p-4)) {
-    factors.push(p,p,p-4,p-4);
+    factors.push(p,p);
+    factors.push(p-4,p-4);
   }
   if (isDigonalPosition(p, p-3)) {
-    factors.push(p,p,p-3,p-3);
+    factors.push(p,p);
+    factors.push(p-3,p-3);
   }
   if (isSameRow(p, p-1)) {
-    factors.push(p,p,p-1,p-1);
+    factors.push(p,p);
+    factors.push(p-1,p-1);
   }
   if (isSameRow(p, p+1)) {
-    factors.push(p,p,p,p+1,p+1,p+1);
+    factors.push(p,p,p);
+    factors.push(p+1,p+1,p+1);
   }
   if (isDigonalPosition(p, p+3)) {
-    factors.push(p,p+3);
+    factors.push(p);
+    factors.push(p+3);
   }
   if (isSameCol(p, p+4)) {
-    factors.push(p,p,p,p+4,p+4,p+4);
+    factors.push(p,p,p);
+    factors.push(p+4,p+4,p+4);
   }
   if (isDigonalPosition(p, p+5)) {
-    factors.push(p,p,p,p+5,p+5,p+5);
+    factors.push(p,p,p);
+    factors.push(p+5,p+5,p+5);
   }
   
   factors = factors.filter(function(f) {
@@ -614,38 +686,8 @@ function createNextRightNote(beat, prevNote) {
   return createNoteByIndex(beat, 1, positionIndex, directionIndex);
 }
 
-// create only vertical obstacle
-function createFormattedObstacle(beat) {
-  let formats = [
-    {x: 0, y: 0, w: 1, h: 4, d: 5}, // left
-    {x: 0, y: 0, w: 1, h: 4, d: 5}, // left
-    {x: 0, y: 0, w: 1, h: 4, d: 5}, // left
-    {x: 0, y: 0, w: 2, h: 4, d: 5}, // left
-    {x: 3, y: 0, w: 1, h: 4, d: 5}, // right
-    {x: 3, y: 0, w: 1, h: 4, d: 5}, // right
-    {x: 3, y: 0, w: 1, h: 4, d: 5}, // right
-    {x: 2, y: 0, w: 2, h: 4, d: 5}, // right
-
-    {x: 0, y: 0, w: 1, h: 4, d: 7}, // left
-    {x: 0, y: 0, w: 1, h: 4, d: 7}, // left
-    {x: 0, y: 0, w: 1, h: 4, d: 7}, // left
-    {x: 0, y: 0, w: 2, h: 4, d: 7}, // left
-    {x: 3, y: 0, w: 1, h: 4, d: 7}, // right
-    {x: 3, y: 0, w: 1, h: 4, d: 7}, // right
-    {x: 3, y: 0, w: 1, h: 4, d: 7}, // right
-    {x: 2, y: 0, w: 2, h: 4, d: 7}, // right
-
-    {x: 0, y: 0, w: 1, h: 4, d: 9}, // left
-    {x: 0, y: 0, w: 1, h: 4, d: 9}, // left
-    {x: 0, y: 0, w: 1, h: 4, d: 9}, // left
-    {x: 0, y: 0, w: 2, h: 4, d: 9}, // left
-    {x: 3, y: 0, w: 1, h: 4, d: 9}, // right
-    {x: 3, y: 0, w: 1, h: 4, d: 9}, // right
-    {x: 3, y: 0, w: 1, h: 4, d: 9}, // right
-    {x: 2, y: 0, w: 2, h: 4, d: 9}, // right
-  ];
-
-  return Object.assign({b: beat}, jsutl.choose(formats));
+function createVerticalObstacle(beat) {
+  return Object.assign({b: beat}, jsutl.choose(OBSTACLE_FORMATS));
 }
 
 // https://bsmg.wiki/mapping/map-format/beatmap.html
@@ -685,22 +727,6 @@ function createDummyNote(beat) {
   const types = [0,1]; // left, right
   const directions = [0,1,2,3,4,5,6,7,8];
   const angles = [0];
-  return {
-    'b': beat,
-    'x': jsutl.choose(cols),
-    'y': jsutl.choose(rows),
-    'c': jsutl.choose(types),
-    'd': jsutl.choose(directions),
-    'a': jsutl.choose(angles),
-  }
-}
-
-function createColorNote(beat, options) {
-  const cols = options && options.cols ? options.cols : [0,1,2,3];
-  const rows = options && options.rows ? options.rows : [0,1,2];
-  const types = options && options.types ? options.types : [0, 1];
-  const directions = options && options.directions ? options.directions : [0,1,2,3,4,5,6,7,8];
-  const angles = options && options.angles ? options.angles : [0];
   return {
     'b': beat,
     'x': jsutl.choose(cols),
@@ -758,7 +784,7 @@ function createObstacle(beat, options) {
 
   const duration = options.duration || [3,3,3,3,3,5,5,5,5,7,7,7,9,9,11];
 
-  const widtheList = [1,2,3];
+  const widthList = [1,2,3];
   const heightList = [1,2,3,4,5];
 
   return {
@@ -894,22 +920,29 @@ async function generate(srcPath) {
     const difficulty = difficulties[i];
     const level = createLevel();
     const {colorNotes, bombNotes, obstacles, sliders, burstSliders} = level;
-    const volumeThreshold = BEAT_VOLUME_THRESHOLD_LIST[i];
-    const noteThreshold = NOTE_THRESHOLD_LIST[i];
-    const obstacleThreshold = OBSTACLE_THRESHOLD_LIST[i];
-    const connectSpacing = CONNECT_SPACING_LIST[i];
-    const obstacleSpacing = OBSTACLE_SPACING_LIST[i];
-    const beatSpacing = BEAT_SPACING_LIST[i];
-    const typeSpacing = TYPE_SPACING_LIST[i];
-    const step = BEAT_STEP_LIST[i];
+    const {
+      step,
+      minVolume,
+      noteSpawnRate,
+      bombSpawnRate,
+      obstacleSpawnRate,
+      beatSpacing,
+      noteSpacing,
+      noteConnectSpacing,
+      obstacleSpacing,
+      obstacleDisappearSpacing,
+      bombDisappearSpacing,
+    } = DIFFICULTY_OPTIONS[difficulty];
+
     const { beats } = wav.analyze(data.channelData, data.sampleRate, data.sampleRate * step);
 
     let beatTimes = [];
     for (const beat of beats) {
       // remove low volume
-      if (beat.value < volumeThreshold) {
+      if (beat.value < minVolume) {
         continue;
       }
+      
       // convert beat time
       let time = beat.time * (bpm / 60);
       time = Math.round(time / beatSpacing) * beatSpacing;
@@ -925,112 +958,99 @@ async function generate(srcPath) {
     let countRightConnectedNotes = 0;
     let countLeftNotes = 0;
     let countRightNotes = 0;
-
     for (let j = 0; j < beatTimes.length; j++) {
       const beat = beatTimes[j];
       let prevObstacle = getPrevObstacle(obstacles);
       let prevLeftNote = getPrevLeftNote(colorNotes);
       let prevRightNote = getPrevRightNote(colorNotes);
-      let isObstacleExists = prevObstacle && prevObstacle.b <= beat && beat <= (prevObstacle.b + prevObstacle.d) + 0.25; // add spacing 0.25 beat
+      let isObstacleExists = prevObstacle && prevObstacle.b <= beat && beat <= (prevObstacle.b + prevObstacle.d) + obstacleDisappearSpacing; // add spacing 0.25 beat
       let currObstacle = isObstacleExists ? prevObstacle : null;
-      let isLeftConnected = prevLeftNote && beat - prevLeftNote.b <= connectSpacing;
-      let isRightConnected = prevRightNote && beat - prevRightNote.b <= connectSpacing;
-      let enableObstacle = Math.random() < obstacleThreshold && (!prevObstacle || beat - (prevObstacle.b + prevObstacle.d) >= obstacleSpacing);
-      let enableLeftHand = Math.random() < noteThreshold && (!prevLeftNote || beat - prevLeftNote.b >= typeSpacing);
-      let enableRightHand = Math.random() < noteThreshold && (!prevRightNote || beat - prevRightNote.b >= typeSpacing);
+      let isLeftConnected = prevLeftNote && beat - prevLeftNote.b <= noteConnectSpacing;
+      let isRightConnected = prevRightNote && beat - prevRightNote.b <= noteConnectSpacing;
+      let enableObstacle = Math.random() < obstacleSpawnRate && (!prevObstacle || beat >= (prevObstacle.b + prevObstacle.d) + obstacleSpacing);
+      let enableLeftHand = Math.random() < noteSpawnRate && (!prevLeftNote || beat - prevLeftNote.b >= noteSpacing);
+      let enableRightHand = Math.random() < noteSpawnRate && (!prevRightNote || beat - prevRightNote.b >= noteSpacing);
       let isLeftFirst = Math.random() < 0.5;
-      let leftNote, rightNote;
+      let currLeftNote, currRightNote;
       let count = 0;
 
       if (enableObstacle) {
-        currObstacle = createFormattedObstacle(beat);
+        currObstacle = createVerticalObstacle(beat);
         obstacles.push(currObstacle);
       }
 
       if (isLeftFirst) {
         if (enableLeftHand) {
-          countLeftNotes += 1;
-          countLeftConnectedNotes += isLeftConnected ? 1 : 0;
-
-          leftNote = createNextLeftNote(beat, isLeftConnected ? prevLeftNote : null);
+          currLeftNote = createNextLeftNote(beat, isLeftConnected ? prevLeftNote : null);
           count = 0;
-          while(chkOverlappedObstacle(currObstacle, leftNote) || chkSamePosition(leftNote, prevRightNote)) {
-            leftNote = createNextLeftNote(beat, isLeftConnected ? prevLeftNote : null);
+          while(chkOverlappedObstacle(currObstacle, currLeftNote) || chkSamePosition(currLeftNote, prevRightNote)) {
+            currLeftNote = createNextLeftNote(beat, isLeftConnected ? prevLeftNote : null);
             count += 1;
             if (count > 390) {
-              countLeftNotes -= 1;
-              countLeftConnectedNotes -= isLeftConnected ? 1 : 0
-              leftNote = undefined;
+              currLeftNote = undefined;
               break;
             }
           }
+
+          if (currLeftNote) {
+            countLeftNotes += 1;
+            countLeftConnectedNotes += isLeftConnected ? 1 : 0;
+          }
         }
         if (enableRightHand) {
-          countRightNotes += 1;
-          countRightConnectedNotes += isRightConnected ? 1 : 0;
-
-          rightNote = createNextRightNote(beat, isRightConnected ? prevRightNote : null);
+          currRightNote = createNextRightNote(beat, isRightConnected ? prevRightNote : null);
           count = 0;
-          while(chkOverlappedObstacle(currObstacle, rightNote) || chkSamePosition(rightNote, prevLeftNote) || chkDupeNotes(leftNote, rightNote)) {
-            rightNote = createNextRightNote(beat, isRightConnected ? prevRightNote : null);
+          while(chkOverlappedObstacle(currObstacle, currRightNote) || chkSamePosition(currRightNote, prevLeftNote) || chkDupeNotes(currLeftNote, currRightNote)) {
+            currRightNote = createNextRightNote(beat, isRightConnected ? prevRightNote : null);
             count += 1;
             if (count > 390) {
-              countRightNotes -= 1;
-              countRightConnectedNotes -= isRightConnected ? 1 : 0
-              rightNote = undefined;
+              currRightNote = undefined;
               break;
             }
           }
         }
       } else {
         if (enableRightHand) {
-          countRightNotes += 1;
-          countRightConnectedNotes += isRightConnected ? 1 : 0;
-
-          rightNote = createNextRightNote(beat, isRightConnected ? prevRightNote : null);
+          currRightNote = createNextRightNote(beat, isRightConnected ? prevRightNote : null);
           count = 0;
-          while(chkOverlappedObstacle(currObstacle, rightNote) || chkSamePosition(rightNote, prevLeftNote)) {
-            rightNote = createNextRightNote(beat, isRightConnected ? prevRightNote : null);
+          while(chkOverlappedObstacle(currObstacle, currRightNote) || chkSamePosition(currRightNote, prevLeftNote)) {
+            currRightNote = createNextRightNote(beat, isRightConnected ? prevRightNote : null);
             count += 1;
             if (count > 390) {
-              countRightNotes -= 1;
-              countRightConnectedNotes -= isRightConnected ? 1 : 0
-              rightNote = undefined;
+              currRightNote = undefined;
               break;
             }
           }
         }
         if (enableLeftHand) {
-          countLeftNotes += 1;
-          countLeftConnectedNotes += isLeftConnected ? 1 : 0;
-
-          leftNote = createNextLeftNote(beat, isLeftConnected ? prevLeftNote : null);
+          currLeftNote = createNextLeftNote(beat, isLeftConnected ? prevLeftNote : null);
           count = 0;
-          while(chkOverlappedObstacle(currObstacle, leftNote) || chkSamePosition(leftNote, prevRightNote) || chkDupeNotes(leftNote, rightNote)) {
-            leftNote = createNextLeftNote(beat, isLeftConnected ? prevLeftNote : null);
+          while(chkOverlappedObstacle(currObstacle, currLeftNote) || chkSamePosition(currLeftNote, prevRightNote) || chkDupeNotes(currLeftNote, currRightNote)) {
+            currLeftNote = createNextLeftNote(beat, isLeftConnected ? prevLeftNote : null);
             count += 1;
             if (count > 390) {
-              countLeftNotes -= 1;
-              countLeftConnectedNotes -= isLeftConnected ? 1 : 0
-              leftNote = undefined;
+              currLeftNote = undefined;
               break;
             }
           }
         }
       }
 
-      if (leftNote) {
-        colorNotes.push(leftNote);
+      if (currLeftNote) {
+        countLeftNotes += 1;
+        countLeftConnectedNotes += isLeftConnected ? 1 : 0;
+        colorNotes.push(currLeftNote);
       }
       
-      if (rightNote) {
-        colorNotes.push(rightNote);
+      if (currRightNote) {
+        countRightNotes += 1;
+        countRightConnectedNotes += isRightConnected ? 1 : 0;
+        colorNotes.push(currRightNote);
       }
     }
 
     // debug
-    console.log(`> ${songName}`);
-    console.log(`> ${difficulty}:`);
+    console.log(`> ${songName}, ${Math.floor(data.duration)} s, ${tempo} bpm, ${difficulty}.`);
     // console.log(`> Total ${colorNotes.length} notes`);
     console.log(`> ${countLeftNotes} left notes, ${countLeftConnectedNotes} connected.`);
     console.log(`> ${countRightNotes} right notes, ${countRightConnectedNotes} connected.`);
@@ -1086,17 +1106,3 @@ export default {
   setFfprobePath: ffmpeg.setFfprobePath,
   generate: generate,
 }
-
-// cjs
-// module.exports = {
-//   sum: sum,
-//   test: test,
-// }
-
-// browser
-// if (window.myModule === undefined) {
-//   window.myModule = {
-//     sum: sum,
-//     test: test,
-//   };
-// }

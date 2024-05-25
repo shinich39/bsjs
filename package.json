@@ -1,12 +1,12 @@
 {
   "name": "bsjs",
   "version": "1.0.0",
-  "description": "Generate Beat Saber custom map in javascript.",
+  "description": "Generate BeatSaber custom map in javascript.",
   "main": "index.js",
   "type": "module",
   "scripts": {
     "test": "node test.js",
-    "start": "node script.js"
+    "start": "node start.js"
   },
   "keywords": [
     "javascript"
