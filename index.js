@@ -283,7 +283,7 @@ function getDirectionIndex(d) {
   });
 }
 
-// only supported vertical obstacle
+// only support vertical obstacle
 function getObstaclePositionIndexes(o) {
   let indexes = [];
   for (let i = 0; i < o.w; i++) {
@@ -330,6 +330,23 @@ function chkDupeNotes(l, r) {
     if (rd === 3 || rd === 5) {
       return true;
     }
+    if (lp < rp) {
+      // l: left, r: right
+      if (ld === 2 || ld === 8) {
+        return true;
+      }
+      if (rd === 0 || rd === 6) {
+        return true;
+      }
+    } else if (lp > rp) {
+      // l: right, r: left
+      if (ld === 0 || ld === 6) {
+        return true;
+      }
+      if (rd === 2 || rd === 8) {
+        return true;
+      }
+    }
   }
   // same col, no space, blocked slide
   if (isSameCol(lp, rp) && getRowDiff(lp, rp) === 1) {
@@ -338,6 +355,23 @@ function chkDupeNotes(l, r) {
     }
     if (rd === 1 || rd === 7) {
       return true;
+    }
+    if (lp < rp) {
+      // l: top, r: bottom
+      if (ld === 6 || ld === 8) {
+        return true;
+      }
+      if (rd === 0 || rd === 2) {
+        return true;
+      }
+    } else if (lp > rp) {
+      // l: bottom, r: top
+      if (ld === 0 || ld === 2) {
+        return true;
+      }
+      if (rd === 6 || rd === 8) {
+        return true;
+      }
     }
   }
   // digonal, blocked slide
@@ -898,7 +932,7 @@ async function generate(srcPath) {
       let prevObstacle = getPrevObstacle(obstacles);
       let prevLeftNote = getPrevLeftNote(colorNotes);
       let prevRightNote = getPrevRightNote(colorNotes);
-      let isObstacleExists = prevObstacle && prevObstacle.b <= beat && beat <= (prevObstacle.b + prevObstacle.d);
+      let isObstacleExists = prevObstacle && prevObstacle.b <= beat && beat <= (prevObstacle.b + prevObstacle.d) + 0.25; // add spacing 0.25 beat
       let currObstacle = isObstacleExists ? prevObstacle : null;
       let isLeftConnected = prevLeftNote && beat - prevLeftNote.b <= connectSpacing;
       let isRightConnected = prevRightNote && beat - prevRightNote.b <= connectSpacing;
@@ -907,6 +941,7 @@ async function generate(srcPath) {
       let enableRightHand = Math.random() < noteThreshold && (!prevRightNote || beat - prevRightNote.b >= typeSpacing);
       let isLeftFirst = Math.random() < 0.5;
       let leftNote, rightNote;
+      let count = 0;
 
       if (enableObstacle) {
         currObstacle = createFormattedObstacle(beat);
@@ -919,7 +954,7 @@ async function generate(srcPath) {
           countLeftConnectedNotes += isLeftConnected ? 1 : 0;
 
           leftNote = createNextLeftNote(beat, isLeftConnected ? prevLeftNote : null);
-          let count = 0;
+          count = 0;
           while(chkOverlappedObstacle(currObstacle, leftNote) || chkSamePosition(leftNote, prevRightNote)) {
             leftNote = createNextLeftNote(beat, isLeftConnected ? prevLeftNote : null);
             count += 1;
@@ -936,7 +971,7 @@ async function generate(srcPath) {
           countRightConnectedNotes += isRightConnected ? 1 : 0;
 
           rightNote = createNextRightNote(beat, isRightConnected ? prevRightNote : null);
-          let count = 0;
+          count = 0;
           while(chkOverlappedObstacle(currObstacle, rightNote) || chkSamePosition(rightNote, prevLeftNote) || chkDupeNotes(leftNote, rightNote)) {
             rightNote = createNextRightNote(beat, isRightConnected ? prevRightNote : null);
             count += 1;
@@ -954,7 +989,7 @@ async function generate(srcPath) {
           countRightConnectedNotes += isRightConnected ? 1 : 0;
 
           rightNote = createNextRightNote(beat, isRightConnected ? prevRightNote : null);
-          let count = 0;
+          count = 0;
           while(chkOverlappedObstacle(currObstacle, rightNote) || chkSamePosition(rightNote, prevLeftNote)) {
             rightNote = createNextRightNote(beat, isRightConnected ? prevRightNote : null);
             count += 1;
@@ -971,7 +1006,7 @@ async function generate(srcPath) {
           countLeftConnectedNotes += isLeftConnected ? 1 : 0;
 
           leftNote = createNextLeftNote(beat, isLeftConnected ? prevLeftNote : null);
-          let count = 0;
+          count = 0;
           while(chkOverlappedObstacle(currObstacle, leftNote) || chkSamePosition(leftNote, prevRightNote) || chkDupeNotes(leftNote, rightNote)) {
             leftNote = createNextLeftNote(beat, isLeftConnected ? prevLeftNote : null);
             count += 1;
