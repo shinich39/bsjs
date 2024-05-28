@@ -4,7 +4,7 @@ Generate BeatSaber custom map in javascript.
 
 This library for generate pre-map.
 
-Generate v3 map, no bombs, no sliders, no burst sliders, no environments, no lighting...
+Generate v3 map, no bombs, no burst sliders, no environments, no lighting...
 
 Please edit map to beat saber custom map editor when after generate. (e.g. chroMapper)
 
@@ -51,6 +51,9 @@ npm start
 ## Updates
 
 - Add obstacle
+- Add slider
+- Less digonal direction
+- Less center note (head position note)
 
 ## References
 
