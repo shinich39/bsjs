@@ -32,7 +32,7 @@ const DIFFICULTY_OPTIONS = {
     sliderSpawnRate: 0.3,
     beatSpacing: 0.25,
     noteSpacing: 1,
-    sliderRange: [3,9],
+    sliderRange: [3,6],
     noteConnectSpacing: 2,
     obstacleSpacing: 30,
     obstacleDisappearSpacing: 0.5,
@@ -48,7 +48,7 @@ const DIFFICULTY_OPTIONS = {
     sliderSpawnRate: 0.3,
     beatSpacing: 0.25,
     noteSpacing: 0.75,
-    sliderRange: [3,9],
+    sliderRange: [3,6],
     noteConnectSpacing: 2,
     obstacleSpacing: 25,
     obstacleDisappearSpacing: 0.5,
@@ -64,7 +64,7 @@ const DIFFICULTY_OPTIONS = {
     sliderSpawnRate: 0.3,
     beatSpacing: 0.25,
     noteSpacing: 0.5,
-    sliderRange: [1.25,9],
+    sliderRange: [1.25,6],
     noteConnectSpacing: 1.5,
     obstacleSpacing: 20,
     obstacleDisappearSpacing: 0.5,
@@ -1245,8 +1245,8 @@ async function generate(srcPath) {
           sliders.push(slider);
 
           // remove a, b
-          colorNotes.splice(bIndex, 1);
-          colorNotes.splice(aIndex, 1);
+          // colorNotes.splice(bIndex, 1);
+          // colorNotes.splice(aIndex, 1);
         }
       }
     }
@@ -1284,8 +1284,8 @@ async function generate(srcPath) {
           sliders.push(slider);
 
           // remove a, b
-          colorNotes.splice(bIndex, 1);
-          colorNotes.splice(aIndex, 1);
+          // colorNotes.splice(bIndex, 1);
+          // colorNotes.splice(aIndex, 1);
         }
       }
     }
