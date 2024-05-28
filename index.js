@@ -18,75 +18,87 @@ const INFO_VERSION = '2.0.0';
 const MAP_VERSION = '3.0.0';
 const PREVIEW_START_TIME = 10;
 const PREVIEW_DURATION = 30;
-const COMPOSE_BEAT_SPACING = true;
+const ENABLE_BEAT_SPACING = true;
+const ENABLE_LESS_CENTER_NOTE = true;
+const ENABLE_LESS_DIAGONAL_DIRECTION = true;
 const DIFFICULTY_OPTIONS = {
   easy: {
     bufferSize: 0.5,
-    minVolume: 0.2,
+    minVolume: 0.7,
     energeThreshold: 1.5,
     noteSpawnRates: [0.5, 0.1],
     bombSpawnRate: 0,
-    obstacleSpawnRate: 0.01,
+    obstacleSpawnRate: 0.02,
+    sliderSpawnRate: 0.3,
     beatSpacing: 0.25,
     noteSpacing: 1,
+    sliderRange: [3,9],
     noteConnectSpacing: 2,
-    obstacleSpacing: 20,
+    obstacleSpacing: 30,
     obstacleDisappearSpacing: 0.5,
     bombDisappearSpacing: 0.25,
   },
   normal: {
-    bufferSize: 0.4,
-    minVolume: 0.2,
+    bufferSize: 0.5,
+    minVolume: 0.4,
     energeThreshold: 1.5,
-    noteSpawnRates: [0.5, 0.2],
+    noteSpawnRates: [0.75, 0.1],
     bombSpawnRate: 0,
-    obstacleSpawnRate: 0.01,
+    obstacleSpawnRate: 0.02,
+    sliderSpawnRate: 0.3,
     beatSpacing: 0.25,
     noteSpacing: 0.75,
+    sliderRange: [3,9],
     noteConnectSpacing: 2,
-    obstacleSpacing: 20,
+    obstacleSpacing: 25,
     obstacleDisappearSpacing: 0.5,
     bombDisappearSpacing: 0.25,
   },
   hard: {
-    bufferSize: 0.3,
-    minVolume: 0.2,
+    bufferSize: 0.5,
+    minVolume: 0.1,
     energeThreshold: 1.5,
-    noteSpawnRates: [0.5, 0.3],
+    noteSpawnRates: [0.75, 0.25],
     bombSpawnRate: 0,
-    obstacleSpawnRate: 0.01,
+    obstacleSpawnRate: 0.03,
+    sliderSpawnRate: 0.3,
     beatSpacing: 0.25,
     noteSpacing: 0.5,
+    sliderRange: [1.25,9],
     noteConnectSpacing: 1.5,
     obstacleSpacing: 20,
     obstacleDisappearSpacing: 0.5,
     bombDisappearSpacing: 0.25,
   },
   expert: {
-    bufferSize: 0.25,
-    minVolume: 0.15,
+    bufferSize: 0.4,
+    minVolume: 0.1,
     energeThreshold: 1.5,
-    noteSpawnRates: [0.5, 0.4],
+    noteSpawnRates: [0.75, 0.5],
     bombSpawnRate: 0,
-    obstacleSpawnRate: 0.01,
+    obstacleSpawnRate: 0.03,
+    sliderSpawnRate: 0.3,
     beatSpacing: 0.25,
     noteSpacing: 0.25,
+    sliderRange: [1.25,6],
     noteConnectSpacing: 1,
-    obstacleSpacing: 20,
+    obstacleSpacing: 15,
     obstacleDisappearSpacing: 0.5,
     bombDisappearSpacing: 0.25,
   },
   expertPlus: {
-    bufferSize: 0.2,
+    bufferSize: 0.3,
     minVolume: 0.1,
     energeThreshold: 1.5,
-    noteSpawnRates: [0.5, 0.5],
+    noteSpawnRates: [0.75, 0.5],
     bombSpawnRate: 0,
-    obstacleSpawnRate: 0.01,
+    obstacleSpawnRate: 0.03,
+    sliderSpawnRate: 0.3,
     beatSpacing: 0.25,
     noteSpacing: 0.25,
+    sliderRange: [1.25,6],
     noteConnectSpacing: 1,
-    obstacleSpacing: 20,
+    obstacleSpacing: 10,
     obstacleDisappearSpacing: 0.5,
     bombDisappearSpacing: 0.25,
   },
@@ -489,21 +501,54 @@ function chkOverlappedObstacle(o, n) {
   return ops.indexOf(np) > -1;
 }
 
+function chkTailNoteDirection(headDirection, tailDirection) {
+  switch(headDirection) {
+    case 0: return [8,5,7].indexOf(tailDirection) > -1;
+    case 1: return [7,6,8].indexOf(tailDirection) > -1;
+    case 2: return [6,3,7].indexOf(tailDirection) > -1;
+    case 3: return [5,2,8].indexOf(tailDirection) > -1;
+    case 4: return [0,1,2,3,4,5,6,7,8].indexOf(tailDirection) > -1;
+    case 5: return [3,0,6].indexOf(tailDirection) > -1;
+    case 6: return [2,1,5].indexOf(tailDirection) > -1;
+    case 7: return [1,0,2].indexOf(tailDirection) > -1;
+    case 8: return [0,1,3].indexOf(tailDirection) > -1;
+  }
+}
+
 function createNoteByIndex(beat, type, positionIndex, directionIndex) {
   return Object.assign({b: beat, c: type}, NOTE_POSITIONS[positionIndex], NOTE_DIRECTIONS[directionIndex]);
 }
 
+// [
+//   0,1,2,
+//   3,4,5,
+//   6,7,8,
+// ];
 function getNextDirectionIndex(d) {
-  switch(d) {
-    case 0: return jsutl.choose([8,8,8,5,7]);
-    case 1: return jsutl.choose([7,7,7,6,8]);
-    case 2: return jsutl.choose([6,6,6,3,7]);
-    case 3: return jsutl.choose([5,5,5,2,8]);
-    case 4: return jsutl.choose([4,4,4,4,4,4,4,4,1,3,5,7]);
-    case 5: return jsutl.choose([3,3,3,0,6]);
-    case 6: return jsutl.choose([2,2,2,1,5]);
-    case 7: return jsutl.choose([1,1,1,0,2]);
-    case 8: return jsutl.choose([0,0,0,1,3]);
+  if (ENABLE_LESS_DIAGONAL_DIRECTION) {
+    switch(d) {
+      case 0: return jsutl.choose([8,5,5,5,7,7,7]);
+      case 1: return jsutl.choose([7,7,7,7,7,6,8]);
+      case 2: return jsutl.choose([6,3,3,3,7,7,7]);
+      case 3: return jsutl.choose([5,5,5,5,5,2,8]);
+      case 4: return jsutl.choose([4,4,4,4,4,4,4,4,1,3,5,7]);
+      case 5: return jsutl.choose([3,3,3,3,3,0,6]);
+      case 6: return jsutl.choose([2,1,1,1,5,5,5]);
+      case 7: return jsutl.choose([1,1,1,1,1,0,2]);
+      case 8: return jsutl.choose([0,1,1,1,3,3,3]);
+    }
+  } else {
+    switch(d) {
+      case 0: return jsutl.choose([8,8,8,8,5,7]);
+      case 1: return jsutl.choose([7,7,7,7,6,8]);
+      case 2: return jsutl.choose([6,6,6,6,3,7]);
+      case 3: return jsutl.choose([5,5,5,5,2,8]);
+      case 4: return jsutl.choose([4,4,4,4,4,4,4,4,1,3,5,7]);
+      case 5: return jsutl.choose([3,3,3,3,0,6]);
+      case 6: return jsutl.choose([2,2,2,2,1,5]);
+      case 7: return jsutl.choose([1,1,1,1,0,2]);
+      case 8: return jsutl.choose([0,0,0,0,1,3]);
+    }
   }
 }
 
@@ -562,42 +607,34 @@ function getPrevObstacle(obstacles) {
 
 // [
 //   2,1,   1, x,
-//   3,~17, 1, x,
+//   3,50%, 1, x,
 //   4,3,   2, x,
 // ]
 function getNextLeftPositionIndex(p) {
   let factors = [];
 
   if (isDigonalPosition(p, p-5)) {
-    factors.push(p,p);
     factors.push(p-5,p-5);
   }
   if (isSameCol(p, p-4)) {
-    factors.push(p);
     factors.push(p-4);
   }
   if (isDigonalPosition(p, p-3)) {
-    factors.push(p);
     factors.push(p-3);
   }
   if (isSameRow(p, p-1)) {
-    factors.push(p,p,p);
     factors.push(p-1,p-1,p-1);
   }
   if (isSameRow(p, p+1)) {
-    factors.push(p);
     factors.push(p+1);
   }
   if (isDigonalPosition(p, p+3)) {
-    factors.push(p,p,p,p);
     factors.push(p+3,p+3,p+3,p+3);
   }
   if (isSameCol(p, p+4)) {
-    factors.push(p,p,p);
     factors.push(p+4,p+4,p+4);
   }
   if (isDigonalPosition(p, p+5)) {
-    factors.push(p,p);
     factors.push(p+5,p+5);
   }
 
@@ -605,53 +642,71 @@ function getNextLeftPositionIndex(p) {
     return f >= 0 && f <= 11;
   });
 
+  let len = factors.length;
+  if (ENABLE_LESS_CENTER_NOTE && (p === 6 || p === 7)) {
+    // center
+    len = 1;
+  } else if (getRow(p) === 0) {
+    // top
+    len = 2;
+  }
+
+  for (let i = 0; i < len; i++) {
+    factors.push(p);
+  }
+
   return jsutl.choose(factors);
 }
 
 // [
-//   1,1,   2, x,
-//   1,~17 ,3, x,
-//   2,3,   4, x,
+//   x, 1,1,   2,
+//   x, 1,50% ,3,
+//   x, 2,3,   4,
 // ]
 function getNextRightPositionIndex(p) {
   let factors = [];
 
   if (isDigonalPosition(p, p-5)) {
-    factors.push(p);
     factors.push(p-5);
   }
   if (isSameCol(p, p-4)) {
-    factors.push(p);
     factors.push(p-4);
   }
   if (isDigonalPosition(p, p-3)) {
-    factors.push(p,p);
     factors.push(p-3,p-3);
   }
   if (isSameRow(p, p-1)) {
-    factors.push(p);
     factors.push(p-1);
   }
   if (isSameRow(p, p+1)) {
-    factors.push(p,p,p);
     factors.push(p+1,p+1,p+1);
   }
   if (isDigonalPosition(p, p+3)) {
-    factors.push(p,p);
     factors.push(p+3,p+3);
   }
   if (isSameCol(p, p+4)) {
-    factors.push(p,p,p);
     factors.push(p+4,p+4,p+4);
   }
   if (isDigonalPosition(p, p+5)) {
-    factors.push(p,p,p,p);
     factors.push(p+5,p+5,p+5,p+5);
   }
   
   factors = factors.filter(function(f) {
     return f >= 0 && f <= 11;
   });
+
+  let len = factors.length;
+  if (ENABLE_LESS_CENTER_NOTE && (p === 6 || p === 7)) {
+    // center
+    len = 1;
+  } else if (getRow(p) === 0) {
+    // top
+    len = 2;
+  }
+
+  for (let i = 0; i < len; i++) {
+    factors.push(p);
+  }
 
   return jsutl.choose(factors);
 }
@@ -680,6 +735,23 @@ function createNextRightNote(beat, prevNote) {
 
 function createVerticalObstacle(beat) {
   return Object.assign({b: beat}, jsutl.choose(OBSTACLE_FORMATS));
+}
+
+function createSliderNote(headNote, tailNote) {
+  return {
+    "c": headNote.c, // Color
+    "b": headNote.b, // Head Beat
+    "x": headNote.x, // Head Line Index
+    "y": headNote.y, // Head Line Layer
+    "d": headNote.d, // Head Cut Direction
+    "mu": 1.0, // Head Control Point Length Multiplier
+    "tb": tailNote.b, // Tail Beat
+    "tx": tailNote.x, // Tail Line Index
+    "ty": tailNote.y, // Tail Line Layer
+    "tc": tailNote.d, // Tail Cut Direction
+    "tmu": 1.0, // Tail Control Point Length Multiplier
+    "m": 0, // Mid-Anchor Mode
+  };
 }
 
 // https://bsmg.wiki/mapping/map-format/beatmap.html
@@ -947,8 +1019,10 @@ async function generate(srcPath) {
       noteSpawnRates,
       bombSpawnRate,
       obstacleSpawnRate,
+      sliderSpawnRate,
       beatSpacing,
       noteSpacing,
+      sliderRange,
       noteConnectSpacing,
       obstacleSpacing,
       obstacleDisappearSpacing,
@@ -968,7 +1042,7 @@ async function generate(srcPath) {
       let time = beat.time * (tempo / 60);
 
       // convert beat for editor => 1/4
-      if (COMPOSE_BEAT_SPACING) {
+      if (ENABLE_BEAT_SPACING) {
         time = Math.round(time / beatSpacing) * beatSpacing;
       }
 
@@ -1007,6 +1081,7 @@ async function generate(srcPath) {
       let isLeftNoteCreatable = !prevLeftNote || beat >= prevLeftNote.b + noteSpacing;
       let isRightNoteCreatable = !prevRightNote || beat >= prevRightNote.b + noteSpacing;
       let isLeftFirst = Math.random() < 0.5;
+      let isLargeEnerge = energe >= avgEnerge * energeThreshold;
       let createObstacle = Math.random() < obstacleSpawnRate && (!prevObstacle || beat >= (prevObstacle.b + prevObstacle.d) + obstacleSpacing);
       let createLeftNote = false;
       let createRightNote = false;
@@ -1059,7 +1134,10 @@ async function generate(srcPath) {
         if (createLeftNote) {
           currLeftNote = createNextLeftNote(beat, isLeftConnected ? prevLeftNote : null);
           countErrors = 0;
-          while(chkOverlappedObstacle(currObstacle, currLeftNote) || chkSamePosition(currLeftNote, prevRightNote)) {
+          while(
+            chkOverlappedObstacle(currObstacle, currLeftNote) || 
+            chkSamePosition(currLeftNote, prevRightNote)
+          ) {
             currLeftNote = createNextLeftNote(beat, isLeftConnected ? prevLeftNote : null);
             countErrors += 1;
             if (countErrors > 390) {
@@ -1072,7 +1150,11 @@ async function generate(srcPath) {
         if (createRightNote) {
           currRightNote = createNextRightNote(beat, isRightConnected ? prevRightNote : null);
           countErrors = 0;
-          while(chkOverlappedObstacle(currObstacle, currRightNote) || chkSamePosition(currRightNote, prevLeftNote) || chkDupeNotes(currLeftNote, currRightNote)) {
+          while(
+            chkOverlappedObstacle(currObstacle, currRightNote) || 
+            chkSamePosition(currRightNote, prevLeftNote) || 
+            chkDupeNotes(currLeftNote, currRightNote)
+          ) {
             currRightNote = createNextRightNote(beat, isRightConnected ? prevRightNote : null);
             countErrors += 1;
             if (countErrors > 390) {
@@ -1086,7 +1168,10 @@ async function generate(srcPath) {
         if (createRightNote) {
           currRightNote = createNextRightNote(beat, isRightConnected ? prevRightNote : null);
           countErrors = 0;
-          while(chkOverlappedObstacle(currObstacle, currRightNote) || chkSamePosition(currRightNote, prevLeftNote)) {
+          while(
+            chkOverlappedObstacle(currObstacle, currRightNote) || 
+            chkSamePosition(currRightNote, prevLeftNote)
+          ) {
             currRightNote = createNextRightNote(beat, isRightConnected ? prevRightNote : null);
             countErrors += 1;
             if (countErrors > 390) {
@@ -1099,7 +1184,11 @@ async function generate(srcPath) {
         if (createLeftNote) {
           currLeftNote = createNextLeftNote(beat, isLeftConnected ? prevLeftNote : null);
           countErrors = 0;
-          while(chkOverlappedObstacle(currObstacle, currLeftNote) || chkSamePosition(currLeftNote, prevRightNote) || chkDupeNotes(currLeftNote, currRightNote)) {
+          while(
+            chkOverlappedObstacle(currObstacle, currLeftNote) || 
+            chkSamePosition(currLeftNote, prevRightNote) || 
+            chkDupeNotes(currLeftNote, currRightNote)
+          ) {
             currLeftNote = createNextLeftNote(beat, isLeftConnected ? prevLeftNote : null);
             countErrors += 1;
             if (countErrors > 390) {
@@ -1120,6 +1209,84 @@ async function generate(srcPath) {
         countRightNotes += 1;
         countRightConnectedNotes += isRightConnected ? 1 : 0;
         colorNotes.push(currRightNote);
+      }
+    }
+
+    // link left notes (slider)
+    for (let i = 0; i < colorNotes.length; i++) {
+      let a = colorNotes[i];
+      let aIndex = i;
+      let b;
+      let bIndex;
+
+      // right note
+      if (a.c !== 0) {
+        continue;
+      }
+
+      for (let j = i + 1; j < colorNotes.length; j++) {
+        if (colorNotes[j].c === 0) {
+          if (chkTailNoteDirection(a.d, colorNotes[j].d)) {
+            b = colorNotes[j];
+            bIndex = j;
+          }
+          break;
+        }
+      }
+
+      if (!b) {
+        continue;
+      }
+
+      const beatDiff = b.b - a.b;
+      if (beatDiff >= sliderRange[0] && beatDiff <= sliderRange[1]) {
+        if (Math.random() < sliderSpawnRate) {
+          const slider = createSliderNote(a, b);
+          sliders.push(slider);
+
+          // remove a, b
+          colorNotes.splice(bIndex, 1);
+          colorNotes.splice(aIndex, 1);
+        }
+      }
+    }
+
+    // link right notes (slider)
+    for (let i = 0; i < colorNotes.length; i++) {
+      let a = colorNotes[i];
+      let aIndex = i;
+      let b;
+      let bIndex;
+
+      // right note
+      if (a.c !== 1) {
+        continue;
+      }
+
+      for (let j = i + 1; j < colorNotes.length; j++) {
+        if (colorNotes[j].c === 1) {
+          if (chkTailNoteDirection(a.d, colorNotes[j].d)) {
+            b = colorNotes[j];
+            bIndex = j;
+          }
+          break;
+        }
+      }
+
+      if (!b) {
+        continue;
+      }
+
+      const beatDiff = b.b - a.b;
+      if (beatDiff >= sliderRange[0] && beatDiff <= sliderRange[1]) {
+        if (Math.random() < sliderSpawnRate) {
+          const slider = createSliderNote(a, b);
+          sliders.push(slider);
+
+          // remove a, b
+          colorNotes.splice(bIndex, 1);
+          colorNotes.splice(aIndex, 1);
+        }
       }
     }
 
