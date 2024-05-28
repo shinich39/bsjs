@@ -15,75 +15,79 @@ const COVER_PATH = path.join(__dirname, "cover.jpg");
 const OUTPUT_PATH = path.join(__dirname, "output");
 
 const INFO_VERSION = '2.0.0';
+const MAP_VERSION = '3.0.0';
 const PREVIEW_START_TIME = 10;
 const PREVIEW_DURATION = 30;
-
-// [easy, normal, hard, expert, expertPlus]
-const MAP_VERSION = '3.0.0';
+const COMPOSE_BEAT_SPACING = true;
 const DIFFICULTY_OPTIONS = {
   easy: {
-    step: 0.5,
-    minVolume: 0.25,
-    noteSpawnRate: 0.5,
+    bufferSize: 0.5,
+    minVolume: 0.2,
+    energeThreshold: 1.5,
+    noteSpawnRates: [0.5, 0.1],
     bombSpawnRate: 0,
     obstacleSpawnRate: 0.01,
     beatSpacing: 0.25,
     noteSpacing: 1,
     noteConnectSpacing: 2,
     obstacleSpacing: 20,
-    obstacleDisappearSpacing: 0.25,
+    obstacleDisappearSpacing: 0.5,
     bombDisappearSpacing: 0.25,
   },
   normal: {
-    step: 0.4,
-    minVolume: 0.25,
-    noteSpawnRate: 0.5,
+    bufferSize: 0.4,
+    minVolume: 0.2,
+    energeThreshold: 1.5,
+    noteSpawnRates: [0.5, 0.2],
     bombSpawnRate: 0,
     obstacleSpawnRate: 0.01,
     beatSpacing: 0.25,
     noteSpacing: 0.75,
-    noteConnectSpacing: 1.75,
-    obstacleSpacing: 17.5,
-    obstacleDisappearSpacing: 0.25,
+    noteConnectSpacing: 2,
+    obstacleSpacing: 20,
+    obstacleDisappearSpacing: 0.5,
     bombDisappearSpacing: 0.25,
   },
   hard: {
-    step: 0.3,
-    minVolume: 0.25,
-    noteSpawnRate: 0.5,
+    bufferSize: 0.3,
+    minVolume: 0.2,
+    energeThreshold: 1.5,
+    noteSpawnRates: [0.5, 0.3],
     bombSpawnRate: 0,
     obstacleSpawnRate: 0.01,
     beatSpacing: 0.25,
-    noteSpacing: 0.25,
+    noteSpacing: 0.5,
     noteConnectSpacing: 1.5,
-    obstacleSpacing: 15,
-    obstacleDisappearSpacing: 0.25,
+    obstacleSpacing: 20,
+    obstacleDisappearSpacing: 0.5,
     bombDisappearSpacing: 0.25,
   },
   expert: {
-    step: 0.2,
-    minVolume: 0.25,
-    noteSpawnRate: 0.5,
-    bombSpawnRate: 0,
-    obstacleSpawnRate: 0.01,
-    beatSpacing: 0.25,
-    noteSpacing: 0.25,
-    noteConnectSpacing: 1.25,
-    obstacleSpacing: 12.5,
-    obstacleDisappearSpacing: 0.25,
-    bombDisappearSpacing: 0.25,
-  },
-  expertPlus: {
-    step: 0.125,
-    minVolume: 0.25,
-    noteSpawnRate: 0.5,
+    bufferSize: 0.25,
+    minVolume: 0.15,
+    energeThreshold: 1.5,
+    noteSpawnRates: [0.5, 0.4],
     bombSpawnRate: 0,
     obstacleSpawnRate: 0.01,
     beatSpacing: 0.25,
     noteSpacing: 0.25,
     noteConnectSpacing: 1,
-    obstacleSpacing: 10,
-    obstacleDisappearSpacing: 0.25,
+    obstacleSpacing: 20,
+    obstacleDisappearSpacing: 0.5,
+    bombDisappearSpacing: 0.25,
+  },
+  expertPlus: {
+    bufferSize: 0.2,
+    minVolume: 0.1,
+    energeThreshold: 1.5,
+    noteSpawnRates: [0.5, 0.5],
+    bombSpawnRate: 0,
+    obstacleSpawnRate: 0.01,
+    beatSpacing: 0.25,
+    noteSpacing: 0.25,
+    noteConnectSpacing: 1,
+    obstacleSpacing: 20,
+    obstacleDisappearSpacing: 0.5,
     bombDisappearSpacing: 0.25,
   },
 }
@@ -863,6 +867,29 @@ function toOgg(srcPath) {
   });
 }
 
+function getSamples(channels) {
+  let samples = new Float32Array(channels[0].length).fill(0);
+  for (let i = 0; i < channels.length; i++) {
+    for (let j = 0; j < channels[i].length; j++) {
+      samples[j] += channels[i][j];
+    }
+  }
+  return samples;
+}
+
+function getEnerge(samples) {
+  return samples.reduce((prev, curr) => prev + curr * curr) / samples.length;
+}
+
+function getEnergies(samples, chunkSize = 1024) {
+  let energies = [];
+  for (let i = 0; i < samples.length; i += chunkSize) {
+    const energe = getEnerge(samples.slice(i, i + chunkSize));
+    energies.push(energe);
+  }
+  return energies;
+}
+
 async function generate(srcPath) {
   let songName = path.basename(srcPath, path.extname(srcPath));
   let authorName = "Unknown";
@@ -887,8 +914,13 @@ async function generate(srcPath) {
 
   const data = wav.decode(wavBuffer);
   const { tempo } = wav.analyze(data.channelData, data.sampleRate, data.sampleRate * 0.5);
-  const bpm = tempo;
-  const info = createInfo(songName, authorName, bpm);
+  const samples = getSamples(data.channelData);
+  const energies = getEnergies(samples);
+  const avgEnerge = energies.reduce(function(prev, curr) {
+    return prev + curr;
+  }, 0) / energies.length;
+
+  const info = createInfo(songName, authorName, tempo);
   const difficulties = ["easy", "normal", "hard", "expert", "expertPlus"];
   let dirName = `${songName.replace(/[/\\?%*:|"<>]/g, '_')}`;
   let dirIndex = 0;
@@ -908,10 +940,11 @@ async function generate(srcPath) {
     const difficulty = difficulties[i];
     const level = createLevel();
     const {colorNotes, bombNotes, obstacles, sliders, burstSliders} = level;
-    const {
-      step,
+    let {
+      bufferSize,
       minVolume,
-      noteSpawnRate,
+      energeThreshold,
+      noteSpawnRates,
       bombSpawnRate,
       obstacleSpawnRate,
       beatSpacing,
@@ -922,82 +955,98 @@ async function generate(srcPath) {
       bombDisappearSpacing,
     } = DIFFICULTY_OPTIONS[difficulty];
 
-    const { beats } = wav.analyze(data.channelData, data.sampleRate, Math.round(data.sampleRate * step));
-
-    let beatTimes = [];
+    let { beats } = wav.analyze(data.channelData, data.sampleRate, Math.round(data.sampleRate * bufferSize));
+    
+    let convertedBeats = [];
     for (const beat of beats) {
       // remove low volume
       if (beat.value < minVolume) {
         continue;
       }
-      
-      // convert beat time
-      let time = beat.time * (bpm / 60);
-      time = Math.round(time / beatSpacing) * beatSpacing;
 
-      // add beat time
-      let beatTime = beatTimes.find(function(item) {
+      // convert beat time
+      let time = beat.time * (tempo / 60);
+
+      // convert beat for editor => 1/4
+      if (COMPOSE_BEAT_SPACING) {
+        time = Math.round(time / beatSpacing) * beatSpacing;
+      }
+
+      // find same beat
+      let convertedBeat = convertedBeats.find(function(item) {
         return item.beat === time;
       });
 
-      if (!beatTime) {
-        beatTimes.push({
+      if (!convertedBeat) {
+        // get energe
+        const chunkSize = 1024;
+        const hopSize = chunkSize * 0.5;
+        const chunk = samples.slice(Math.max(0, beat.index - hopSize), Math.min(samples.length, beat.index + hopSize));
+        const energe = getEnerge(chunk);
+
+        convertedBeats.push({
           beat: time,
-          volume: beat.value,
-          countBeats: 1
+          energe: energe,
         });
-      } else {
-        beatTime.countBeats += 1;
-        if (beatTime.volume < beat.value) {
-          beatTime.volume = beat.value;
-        }
       }
     }
-
-    // debug
-    // console.log("COUNT_BEATS", beatTimes.reduce(function(p, c) {
-    //   if (!p[c.countBeats]) {
-    //     p[c.countBeats] = 1;
-    //   } else {
-    //     p[c.countBeats] += 1;
-    //   }
-    //   return p;
-    // }, {}));
 
     // create notes
     let countLeftConnectedNotes = 0;
     let countRightConnectedNotes = 0;
     let countLeftNotes = 0;
     let countRightNotes = 0;
-    for (let j = 0; j < beatTimes.length; j++) {
-      let { beat, countBeats, volume } = beatTimes[j];
+    for (let j = 0; j < convertedBeats.length; j++) {
+      let { beat, energe } = convertedBeats[j];
       let prevObstacle = getPrevObstacle(obstacles);
       let prevLeftNote = getPrevLeftNote(colorNotes);
       let prevRightNote = getPrevRightNote(colorNotes);
       let isObstacleExists = prevObstacle && prevObstacle.b <= beat && beat <= (prevObstacle.b + prevObstacle.d) + obstacleDisappearSpacing; // add spacing 0.25 beat
-      let currObstacle = isObstacleExists ? prevObstacle : null;
-      let isLeftConnected = prevLeftNote && beat - prevLeftNote.b <= noteConnectSpacing;
-      let isRightConnected = prevRightNote && beat - prevRightNote.b <= noteConnectSpacing;
-      let createObstacle = false;
-      let createLeftHand = false;
-      let createRightHand = false;
+      let isLeftConnected = prevLeftNote && beat <= prevLeftNote.b + noteConnectSpacing;
+      let isRightConnected = prevRightNote && beat <= prevRightNote.b + noteConnectSpacing;
+      let isLeftNoteCreatable = !prevLeftNote || beat >= prevLeftNote.b + noteSpacing;
+      let isRightNoteCreatable = !prevRightNote || beat >= prevRightNote.b + noteSpacing;
       let isLeftFirst = Math.random() < 0.5;
+      let createObstacle = Math.random() < obstacleSpawnRate && (!prevObstacle || beat >= (prevObstacle.b + prevObstacle.d) + obstacleSpacing);
+      let createLeftNote = false;
+      let createRightNote = false;
+      let currObstacle = isObstacleExists ? prevObstacle : null;
       let currLeftNote;
       let currRightNote;
-      let countCreations = countBeats;
       let countErrors = 0;
 
-      while(countCreations > 0) {
-        if (!createLeftHand) {
-          createLeftHand = Math.random() < (volume * noteSpawnRate) && (!prevLeftNote || beat - prevLeftNote.b >= noteSpacing);
+      // check prev note
+      if (isLeftConnected) {
+        if (!prevRightNote || prevLeftNote.b > prevRightNote.b) {
+          if (isLeftNoteCreatable) {
+            isLeftFirst = true;
+            createLeftNote = true;
+          }
         }
-        if (!createRightHand) {
-          createRightHand = Math.random() < (volume * noteSpawnRate) && (!prevRightNote || beat - prevRightNote.b >= noteSpacing);
+      }
+      if (isRightConnected) {
+        if (!prevLeftNote || prevLeftNote.b < prevRightNote.b) {
+          if (isRightNoteCreatable) {
+            isLeftFirst = false;
+            createRightNote = true;
+          }
         }
-        if (!createObstacle) {
-          createObstacle = Math.random() < obstacleSpawnRate && (!prevObstacle || beat >= (prevObstacle.b + prevObstacle.d) + obstacleSpacing);
+      }
+
+      if (isLeftFirst) {
+        if (isLeftNoteCreatable && !createLeftNote) {
+          createLeftNote = Math.random() < noteSpawnRates[0];
         }
-        countCreations--;
+        if (isRightNoteCreatable && !createRightNote) {
+          createRightNote = Math.random() < noteSpawnRates[1];
+        }
+      } else {
+        if (isRightNoteCreatable && !createRightNote) {
+          createRightNote = Math.random() < noteSpawnRates[0];
+        }
+        if (isLeftNoteCreatable && !createLeftNote) {
+          createLeftNote = Math.random() < noteSpawnRates[1];
+        }
       }
 
       if (createObstacle) {
@@ -1006,7 +1055,8 @@ async function generate(srcPath) {
       }
 
       if (isLeftFirst) {
-        if (createLeftHand) {
+        // create left note
+        if (createLeftNote) {
           currLeftNote = createNextLeftNote(beat, isLeftConnected ? prevLeftNote : null);
           countErrors = 0;
           while(chkOverlappedObstacle(currObstacle, currLeftNote) || chkSamePosition(currLeftNote, prevRightNote)) {
@@ -1017,13 +1067,9 @@ async function generate(srcPath) {
               break;
             }
           }
-
-          if (currLeftNote) {
-            countLeftNotes += 1;
-            countLeftConnectedNotes += isLeftConnected ? 1 : 0;
-          }
         }
-        if (createRightHand) {
+        // create right note
+        if (createRightNote) {
           currRightNote = createNextRightNote(beat, isRightConnected ? prevRightNote : null);
           countErrors = 0;
           while(chkOverlappedObstacle(currObstacle, currRightNote) || chkSamePosition(currRightNote, prevLeftNote) || chkDupeNotes(currLeftNote, currRightNote)) {
@@ -1036,7 +1082,8 @@ async function generate(srcPath) {
           }
         }
       } else {
-        if (createRightHand) {
+        // create right note
+        if (createRightNote) {
           currRightNote = createNextRightNote(beat, isRightConnected ? prevRightNote : null);
           countErrors = 0;
           while(chkOverlappedObstacle(currObstacle, currRightNote) || chkSamePosition(currRightNote, prevLeftNote)) {
@@ -1048,7 +1095,8 @@ async function generate(srcPath) {
             }
           }
         }
-        if (createLeftHand) {
+        // create left note
+        if (createLeftNote) {
           currLeftNote = createNextLeftNote(beat, isLeftConnected ? prevLeftNote : null);
           countErrors = 0;
           while(chkOverlappedObstacle(currObstacle, currLeftNote) || chkSamePosition(currLeftNote, prevRightNote) || chkDupeNotes(currLeftNote, currRightNote)) {

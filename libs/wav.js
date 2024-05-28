@@ -289,101 +289,118 @@ function getDuration(samples, sampleRate) {
   return samples[0].length / sampleRate;
 }
 
-// https://github.com/JMPerez/beats-audio-api/
-// http://joesul.li/van/beat-detection-using-web-audio/
-function analyze(samples, sampleRate, step) {
-
-  function getVolume(samples, index) {
-    let volume = 0, v;
-    for (const s of samples) {
-      v = Math.abs(s[index]);
-      if (volume < v) {
-        volume = v;
+function getSamples(channels) {
+  let samples = new Float32Array(channels[0].length).fill(0);
+  for (let i = 0; i < channels.length; i++) {
+    for (let j = 0; j < channels[i].length; j++) {
+      const value = Math.abs(channels[i][j]);
+      if (samples[j] < value) {
+        samples[j] = value;
       }
     }
-    return volume;
   }
+  return samples;
+}
 
-  function getPeaks(samples, sampleRate, step) {
-    let frames = samples[0].length / step,
-        peaks = [];
+// https://github.com/JMPerez/beats-audio-api/
+// http://joesul.li/van/beat-detection-using-web-audio/
+function analyze(channelData, sampleRate, bufferSize) {
 
-    for (let i = 0; i < frames; i++) {
-      let maxVolume = 0,
-          maxIndex = -1, 
-          startIndex = i * step,
-          endIndex = Math.min((i + 1) * step, samples[0].length);
+  function getBeats(samples, sampleRate, bufferSize) {
+    let beats = [];
+    for (let i = 0; i < samples.length; i += bufferSize) {
+      let value = 0,
+          index = -1, 
+          startIndex = i,
+          endIndex = Math.min(i + bufferSize, samples.length);
 
       for (let j = startIndex; j < endIndex; j++) {
-        let volume = getVolume(samples, j);
-        if (maxVolume < volume) {
-          maxVolume = volume;
-          maxIndex = j;
+        if (value < samples[j]) {
+          value = samples[j];
+          index = j;
         }
       }
 
-      if (maxIndex > -1) {
-        peaks.push({
-          index: maxIndex,
-          value: maxVolume,
-          time: maxIndex / sampleRate,
+      if (index > -1) {
+        beats.push({
+          index: index,
+          value: value,
+          time: index / sampleRate,
         });
       }
     }
 
+    return beats;
+  }
+
+  function getTempo(beats, sampleRate) {
+    let MIN_TEMPO = 90,
+        MAX_TEMPO = 180,
+        intervals = [],
+        count = 0,
+        tempo = 0,
+        peaks = beats.slice(0, beats.length);
+
+    peaks.sort(function(a, b) {
+      return b.value - a.value;
+    });
+  
+    peaks = peaks.slice(0, peaks.length * 0.25);
+  
     peaks.sort(function(a, b) {
       return a.index - b.index;
     });
-  
-    return peaks;
-  }
 
-  function getIntervals(peaks, sampleRate) {
-    let groups = [];
     for (let i = 0; i < peaks.length; i++) {
-      let len = Math.min(i + 10, peaks.length);
-      for (let j = i + 1; j < len; j++) {
-        let tempo = (sampleRate * 60) / (peaks[j].index - peaks[i].index);
+      let startIndex = i + 1,
+          endIndex = Math.min(i + 10, peaks.length);
 
-        while (tempo < 90) {
-          tempo *= 2;
+      for (let j = startIndex; j < endIndex; j++) {
+        let t = (sampleRate * 60) / (peaks[j].index - peaks[i].index);
+
+        while (t < MIN_TEMPO) {
+          t *= 2;
         }
 
-        while (tempo > 180) {
-          tempo /= 2;
+        while (t > MAX_TEMPO) {
+          t /= 2;
         }
 
-        tempo = Math.round(tempo);
+        t = Math.round(t);
 
-        let group = groups.find(function(item) {
-          return item.tempo === tempo;
+        let interval = intervals.find(function(item) {
+          return item.tempo === t;
         });
+
+        if (!interval) {
+          interval = {
+            tempo: t,
+            count: 0,
+          }
+
+          intervals.push(interval);
+        }
        
-        if (group) {
-          group.count += 1;
-        } else {
-          groups.push({
-            tempo: tempo,
-            count: 1,
-          });
+        interval.count += 1;
+
+        if (count < interval.count) {
+          count = interval.count;
+          tempo = interval.tempo;
         }
       }
     }
 
-    groups.sort(function(a, b) {
-      return b.count - a.count;
-    });
-
-    return groups;
+    return tempo;
   }
-
-  let peaks = getPeaks(samples, sampleRate, step || sampleRate * 0.5);
-  let groups = getIntervals(peaks.slice(0, peaks.length * 0.5), sampleRate);
+  
+  const samples = getSamples(channelData);
+  const beats = getBeats(samples, sampleRate, bufferSize || sampleRate * 0.5);
+  const tempo = getTempo(beats, sampleRate);
 
   return {
-    tempo: groups[0].tempo,
-    beats: peaks,
-  };
+    beats,
+    tempo,
+  }
 }
 
 // esm
