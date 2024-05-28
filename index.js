@@ -19,7 +19,8 @@ const MAP_VERSION = '3.0.0';
 const PREVIEW_START_TIME = 10;
 const PREVIEW_DURATION = 30;
 const ENABLE_BEAT_SPACING = true;
-const ENABLE_LESS_CENTER_NOTE = true;
+const ENABLE_LESS_TOP_POSITION = true;
+const ENABLE_LESS_CENTER_POSITION = true;
 const ENABLE_LESS_DIAGONAL_DIRECTION = true;
 const DIFFICULTY_OPTIONS = {
   easy: {
@@ -643,12 +644,12 @@ function getNextLeftPositionIndex(p) {
   });
 
   let len = factors.length;
-  if (ENABLE_LESS_CENTER_NOTE && (p === 6 || p === 7)) {
+  if (ENABLE_LESS_CENTER_POSITION && (p === 5 || p === 6)) {
     // center
     len = 1;
-  } else if (getRow(p) === 0) {
+  } else if (ENABLE_LESS_TOP_POSITION && getRow(p) === 0) {
     // top
-    len = 2;
+    len = 1;
   }
 
   for (let i = 0; i < len; i++) {
@@ -696,12 +697,12 @@ function getNextRightPositionIndex(p) {
   });
 
   let len = factors.length;
-  if (ENABLE_LESS_CENTER_NOTE && (p === 6 || p === 7)) {
+  if (ENABLE_LESS_CENTER_POSITION && (p === 5 || p === 6)) {
     // center
     len = 1;
-  } else if (getRow(p) === 0) {
+  } else if (ENABLE_LESS_TOP_POSITION && getRow(p) === 0) {
     // top
-    len = 2;
+    len = 1;
   }
 
   for (let i = 0; i < len; i++) {
