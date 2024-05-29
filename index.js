@@ -1280,73 +1280,73 @@ async function generate(srcPath) {
     }
 
     // link left notes (slider)
-    // for (let i = 0; i < colorNotes.length; i++) {
-    //   let a = colorNotes[i];
-    //   let b;
+    for (let i = 0; i < colorNotes.length; i++) {
+      let a = colorNotes[i];
+      let b;
 
-    //   // right note
-    //   if (a.c !== 0) {
-    //     continue;
-    //   }
+      // right note
+      if (a.c !== 0) {
+        continue;
+      }
 
-    //   for (let j = i + 1; j < colorNotes.length; j++) {
-    //     if (colorNotes[j].c === 0) {
-    //       if (chkTailNoteDirection(a.d, colorNotes[j].d)) {
-    //         b = colorNotes[j];
-    //       }
-    //       break;
-    //     }
-    //   }
+      for (let j = i + 1; j < colorNotes.length; j++) {
+        if (colorNotes[j].c === 0) {
+          if (chkTailNoteDirection(a.d, colorNotes[j].d)) {
+            b = colorNotes[j];
+          }
+          break;
+        }
+      }
 
-    //   if (!b) {
-    //     continue;
-    //   }
+      if (!b) {
+        continue;
+      }
 
-    //   const beatDiff = b.b - a.b;
-    //   if (beatDiff >= sliderRange[0] && beatDiff <= sliderRange[1]) {
-    //     if (Math.random() < sliderSpawnRate) {
-    //       const slider = createSliderNote(a, b);
-    //       sliders.push(slider);
-    //     }
-    //   }
-    // }
+      const beatDiff = b.b - a.b;
+      if (beatDiff >= sliderRange[0] && beatDiff <= sliderRange[1]) {
+        if (Math.random() < sliderSpawnRate) {
+          const slider = createSliderNote(a, b);
+          sliders.push(slider);
+        }
+      }
+    }
 
-    // // link right notes (slider)
-    // for (let i = 0; i < colorNotes.length; i++) {
-    //   let a = colorNotes[i];
-    //   let b;
+    // link right notes (slider)
+    for (let i = 0; i < colorNotes.length; i++) {
+      let a = colorNotes[i];
+      let b;
 
-    //   // right note
-    //   if (a.c !== 1) {
-    //     continue;
-    //   }
+      // right note
+      if (a.c !== 1) {
+        continue;
+      }
 
-    //   for (let j = i + 1; j < colorNotes.length; j++) {
-    //     if (colorNotes[j].c === 1) {
-    //       if (chkTailNoteDirection(a.d, colorNotes[j].d)) {
-    //         b = colorNotes[j];
-    //       }
-    //       break;
-    //     }
-    //   }
+      for (let j = i + 1; j < colorNotes.length; j++) {
+        if (colorNotes[j].c === 1) {
+          if (chkTailNoteDirection(a.d, colorNotes[j].d)) {
+            b = colorNotes[j];
+          }
+          break;
+        }
+      }
 
-    //   if (!b) {
-    //     continue;
-    //   }
+      if (!b) {
+        continue;
+      }
 
-    //   const beatDiff = b.b - a.b;
-    //   if (beatDiff >= sliderRange[0] && beatDiff <= sliderRange[1]) {
-    //     if (Math.random() < sliderSpawnRate) {
-    //       const slider = createSliderNote(a, b);
-    //       sliders.push(slider);
-    //     }
-    //   }
-    // }
+      const beatDiff = b.b - a.b;
+      if (beatDiff >= sliderRange[0] && beatDiff <= sliderRange[1]) {
+        if (Math.random() < sliderSpawnRate) {
+          const slider = createSliderNote(a, b);
+          sliders.push(slider);
+        }
+      }
+    }
 
-    // // sort sliders
-    // sliders.sort(function(a, b) {
-    //   return a.b - b.b;
-    // });
+    // sort sliders
+    sliders.sort(function(a, b) {
+      return a.b - b.b;
+    });
 
     // debug
     console.log(`> ${songName}, ${Math.floor(data.duration)} s, ${tempo} bpm, ${characteristicName}, ${difficulty}.`);
