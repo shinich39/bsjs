@@ -51,7 +51,7 @@ const DIFFICULTY_OPTIONS = {
     beatSpacing: 0.25,
     noteSpacing: 0.75,
     sliderRange: [1.5, 5],
-    noteConnectSpacing: 2,
+    noteConnectSpacing: 2.25,
     obstacleSpacing: 20,
     obstacleDisappearSpacing: 0.5,
     bombDisappearSpacing: 0.5,
@@ -95,7 +95,7 @@ const DIFFICULTY_OPTIONS = {
     noteSpawnRates: [0.75, 0.5],
     bombSpawnRate: 0,
     obstacleSpawnRate: 0.05,
-    sliderSpawnRate: 0.5,
+    sliderSpawnRate: 0.4,
     beatSpacing: 0.25,
     noteSpacing: 0.25,
     sliderRange: [1, 5],
@@ -167,7 +167,7 @@ const RIGHT_NOTE_FORMATS = [
   // middle
   // [4,3],
   [5,0], [5,3],
-  [6,0], [6,1], [6,2], [6,3], [6,5], [6,6], [6,7], [6,8],
+  [6,0], [6,1], [6,2], [6,3], [6,4], [6,5], [6,6], [6,7], [6,8],
   [7,2], [7,5], [7,8],
   [7,2], [7,5], [7,8],
   [7,2], [7,5], [7,8],
@@ -352,6 +352,24 @@ function getObstaclePositionIndexes(o) {
   return positions;
 }
 
+function shuffleArray(array) {
+  let currentIndex = array.length;
+
+  // While there remain elements to shuffle...
+  while (currentIndex != 0) {
+
+    // Pick a remaining element...
+    let randomIndex = Math.floor(Math.random() * currentIndex);
+    currentIndex--;
+
+    // And swap it with the current element.
+    [array[currentIndex], array[randomIndex]] = [
+      array[randomIndex], array[currentIndex]];
+  }
+
+  return array;
+}
+
 // const POSITIONS = [
 //   0,1,2,3,
 //   4,5,6,7,
@@ -432,7 +450,7 @@ function chkDupeNotes(l, r) {
     }
   }
   // digonal, blocked slide
-  if (isDigonalPosition(lp, rp)) {
+  if (isDiagonalPosition(lp, rp)) {
     const lc = getCol(lp);
     const lr = getRow(lp);
     const rc = getCol(rp);
@@ -593,7 +611,7 @@ function getColDiff(a, b) {
   return Math.abs((a % 4) - (b % 4));
 }
 
-function isDigonalPosition(a, b) {
+function isDiagonalPosition(a, b) {
   return getColDiff(a, b) === 1 && getRowDiff(a, b) === 1;
 }
 
@@ -630,28 +648,36 @@ function getPrevObstacle(obstacles) {
 function getNextLeftPositionIndex(p) {
   let positions = [];
 
-  if (isDigonalPosition(p, p-5)) {
+  // left top
+  if (isDiagonalPosition(p, p-5)) {
     positions.push(p-5,p-5);
   }
+  // top
   if (isSameCol(p, p-4)) {
     positions.push(p-4);
   }
-  if (isDigonalPosition(p, p-3)) {
+  // right top
+  if (isDiagonalPosition(p, p-3)) {
     positions.push(p-3);
   }
+  // left
   if (isSameRow(p, p-1)) {
     positions.push(p-1,p-1,p-1);
   }
+  // right
   if (isSameRow(p, p+1)) {
     positions.push(p+1);
   }
-  if (isDigonalPosition(p, p+3)) {
+  // left bottom
+  if (isDiagonalPosition(p, p+3)) {
     positions.push(p+3,p+3,p+3,p+3);
   }
+  // bottom
   if (isSameCol(p, p+4)) {
     positions.push(p+4,p+4,p+4);
   }
-  if (isDigonalPosition(p, p+5)) {
+  // right bottom
+  if (isDiagonalPosition(p, p+5)) {
     positions.push(p+5,p+5);
   }
 
@@ -663,6 +689,8 @@ function getNextLeftPositionIndex(p) {
   positions = positions.filter(function(pos) {
     return pos >= 0 && pos <= 11;
   });
+
+  positions = shuffleArray(positions);
 
   if (ENABLE_LESS_CENTER_POSITION) {
     let max = 1;
@@ -701,28 +729,36 @@ function getNextLeftPositionIndex(p) {
 function getNextRightPositionIndex(p) {
   let positions = [];
 
-  if (isDigonalPosition(p, p-5)) {
+  // left top
+  if (isDiagonalPosition(p, p-5)) {
     positions.push(p-5);
   }
+  // top
   if (isSameCol(p, p-4)) {
     positions.push(p-4);
   }
-  if (isDigonalPosition(p, p-3)) {
+  // right top
+  if (isDiagonalPosition(p, p-3)) {
     positions.push(p-3,p-3);
   }
+  // left
   if (isSameRow(p, p-1)) {
     positions.push(p-1);
   }
+  // right
   if (isSameRow(p, p+1)) {
     positions.push(p+1,p+1,p+1);
   }
-  if (isDigonalPosition(p, p+3)) {
+  // left bottom
+  if (isDiagonalPosition(p, p+3)) {
     positions.push(p+3,p+3);
   }
+  // bottom
   if (isSameCol(p, p+4)) {
     positions.push(p+4,p+4,p+4);
   }
-  if (isDigonalPosition(p, p+5)) {
+  // right bottom
+  if (isDiagonalPosition(p, p+5)) {
     positions.push(p+5,p+5,p+5,p+5);
   }
   
@@ -734,6 +770,8 @@ function getNextRightPositionIndex(p) {
   positions = positions.filter(function(pos) {
     return pos >= 0 && pos <= 11;
   });
+
+  positions = shuffleArray(positions);
 
   if (ENABLE_LESS_CENTER_POSITION) {
     let max = 1;
@@ -1161,13 +1199,15 @@ async function generate(srcPath) {
         countLargeEnergies += 1;
       }
 
-      // check prev note
+      // check prev left note
       if (isLeftConnected && isLeftNoteCreatable) {
         if (!prevRightNote || prevLeftNote.b > prevRightNote.b) {
           isLeftFirst = true;
           createLeftNote = true;
         }
       }
+
+      // check prev right note
       if (isRightConnected && isRightNoteCreatable) {
         if (!prevLeftNote || prevLeftNote.b < prevRightNote.b) {
           isLeftFirst = false;
@@ -1175,12 +1215,13 @@ async function generate(srcPath) {
         }
       }
 
+      // random create
       if (isLeftFirst) {
         if (isLeftNoteCreatable && !createLeftNote) {
           createLeftNote = Math.random() < noteSpawnRates[0] + (isLargeEnerge ? 0.25 : 0);
         }
         if (isRightNoteCreatable && !createRightNote) {
-          createRightNote = Math.random() < noteSpawnRates[1]
+          createRightNote = Math.random() < noteSpawnRates[1];
         }
       } else {
         if (isRightNoteCreatable && !createRightNote) {
