@@ -21,7 +21,8 @@ const PREVIEW_DURATION = 30;
 const ENABLE_BEAT_SPACING = true;
 const ENABLE_LESS_TOP_POSITION = true;
 const ENABLE_LESS_CENTER_POSITION = true;
-const ENABLE_LESS_DIAGONAL_DIRECTION = true;
+const ENABLE_LESS_DIAGONAL_DIRECTION = false;
+const ENABLE_LESS_HORIZONTAL_DIRECTION = false; // require set ENABLE_LESS_DIAGONAL_DIRECTION value to true.
 const DIFFICULTY_OPTIONS = {
   easy: {
     bufferSize: 0.5,
@@ -30,14 +31,14 @@ const DIFFICULTY_OPTIONS = {
     noteSpawnRates: [0.5, 0.1],
     bombSpawnRate: 0,
     obstacleSpawnRate: 0.02,
-    sliderSpawnRate: 0.3,
+    sliderSpawnRate: 0.5,
     beatSpacing: 0.25,
     noteSpacing: 1,
-    sliderRange: [3,6],
+    sliderRange: [2, 6],
     noteConnectSpacing: 2,
-    obstacleSpacing: 30,
+    obstacleSpacing: 25,
     obstacleDisappearSpacing: 0.5,
-    bombDisappearSpacing: 0.25,
+    bombDisappearSpacing: 0.5,
   },
   normal: {
     bufferSize: 0.5,
@@ -46,14 +47,14 @@ const DIFFICULTY_OPTIONS = {
     noteSpawnRates: [0.75, 0.1],
     bombSpawnRate: 0,
     obstacleSpawnRate: 0.02,
-    sliderSpawnRate: 0.3,
+    sliderSpawnRate: 0.5,
     beatSpacing: 0.25,
     noteSpacing: 0.75,
-    sliderRange: [3,6],
+    sliderRange: [2, 6],
     noteConnectSpacing: 2,
-    obstacleSpacing: 25,
+    obstacleSpacing: 20,
     obstacleDisappearSpacing: 0.5,
-    bombDisappearSpacing: 0.25,
+    bombDisappearSpacing: 0.5,
   },
   hard: {
     bufferSize: 0.5,
@@ -62,14 +63,14 @@ const DIFFICULTY_OPTIONS = {
     noteSpawnRates: [0.75, 0.25],
     bombSpawnRate: 0,
     obstacleSpawnRate: 0.03,
-    sliderSpawnRate: 0.3,
+    sliderSpawnRate: 0.5,
     beatSpacing: 0.25,
     noteSpacing: 0.5,
-    sliderRange: [1.25,6],
+    sliderRange: [1.75, 5],
     noteConnectSpacing: 1.5,
-    obstacleSpacing: 20,
+    obstacleSpacing: 15,
     obstacleDisappearSpacing: 0.5,
-    bombDisappearSpacing: 0.25,
+    bombDisappearSpacing: 0.5,
   },
   expert: {
     bufferSize: 0.4,
@@ -78,14 +79,14 @@ const DIFFICULTY_OPTIONS = {
     noteSpawnRates: [0.75, 0.5],
     bombSpawnRate: 0,
     obstacleSpawnRate: 0.03,
-    sliderSpawnRate: 0.3,
+    sliderSpawnRate: 0.5,
     beatSpacing: 0.25,
     noteSpacing: 0.25,
-    sliderRange: [1.25,6],
+    sliderRange: [1.5, 5],
     noteConnectSpacing: 1,
-    obstacleSpacing: 15,
+    obstacleSpacing: 12.5,
     obstacleDisappearSpacing: 0.5,
-    bombDisappearSpacing: 0.25,
+    bombDisappearSpacing: 0.5,
   },
   expertPlus: {
     bufferSize: 0.3,
@@ -94,14 +95,14 @@ const DIFFICULTY_OPTIONS = {
     noteSpawnRates: [0.75, 0.5],
     bombSpawnRate: 0,
     obstacleSpawnRate: 0.03,
-    sliderSpawnRate: 0.3,
+    sliderSpawnRate: 0.5,
     beatSpacing: 0.25,
     noteSpacing: 0.25,
-    sliderRange: [1.25,6],
+    sliderRange: [1, 5],
     noteConnectSpacing: 1,
     obstacleSpacing: 10,
     obstacleDisappearSpacing: 0.5,
-    bombDisappearSpacing: 0.25,
+    bombDisappearSpacing: 0.5,
   },
 }
 
@@ -142,8 +143,6 @@ const LEFT_NOTE_FORMATS = [
   [4,0], [4,3], [4,6],
   [4,0], [4,3], [4,6],
   [5,0], [5,1], [5,2], [5,3], [5,4], [5,5], [5,6], [5,7], [5,8],
-  [5,0], [5,1], [5,2], [5,3], [5,4], [5,5], [5,6], [5,7], [5,8],
-  [5,0], [5,1], [5,2], [5,3], [5,4], [5,5], [5,6], [5,7], [5,8],
   [6,2], [6,5],
   // [7,5],
 
@@ -168,8 +167,6 @@ const RIGHT_NOTE_FORMATS = [
   // middle
   // [4,3],
   [5,0], [5,3],
-  [6,0], [6,1], [6,2], [6,3], [6,5], [6,6], [6,7], [6,8],
-  [6,0], [6,1], [6,2], [6,3], [6,5], [6,6], [6,7], [6,8],
   [6,0], [6,1], [6,2], [6,3], [6,5], [6,6], [6,7], [6,8],
   [7,2], [7,5], [7,8],
   [7,2], [7,5], [7,8],
@@ -486,10 +483,8 @@ function chkSamePosition(l, r) {
   if (!l || !r) {
     return false;
   }
-
   const lp = getPotisionIndex(l.x, l.y);
   const rp = getPotisionIndex(r.x, r.y);
-
   return lp === rp;
 }
 
@@ -502,17 +497,24 @@ function chkOverlappedObstacle(o, n) {
   return ops.indexOf(np) > -1;
 }
 
+// [
+//   0,1,2,
+//   3,4,5,
+//   6,7,8,
+// ];
 function chkTailNoteDirection(headDirection, tailDirection) {
-  switch(headDirection) {
-    case 0: return [8,5,7].indexOf(tailDirection) > -1;
-    case 1: return [7,6,8].indexOf(tailDirection) > -1;
-    case 2: return [6,3,7].indexOf(tailDirection) > -1;
-    case 3: return [5,2,8].indexOf(tailDirection) > -1;
-    case 4: return [0,1,2,3,4,5,6,7,8].indexOf(tailDirection) > -1;
-    case 5: return [3,0,6].indexOf(tailDirection) > -1;
-    case 6: return [2,1,5].indexOf(tailDirection) > -1;
-    case 7: return [1,0,2].indexOf(tailDirection) > -1;
-    case 8: return [0,1,3].indexOf(tailDirection) > -1;
+  const hd = getDirectionIndex(headDirection);
+  const td = getDirectionIndex(tailDirection);
+  switch(hd) {
+    case 0: return [8,5,7].indexOf(td) > -1;
+    case 1: return [7,6,8].indexOf(td) > -1;
+    case 2: return [6,3,7].indexOf(td) > -1;
+    case 3: return [5,2,8].indexOf(td) > -1;
+    case 4: return [0,1,2,3,4,5,6,7,8].indexOf(td) > -1;
+    case 5: return [3,0,6].indexOf(td) > -1;
+    case 6: return [2,1,5].indexOf(td) > -1;
+    case 7: return [1,0,2].indexOf(td) > -1;
+    case 8: return [0,1,3].indexOf(td) > -1;
   }
 }
 
@@ -527,16 +529,30 @@ function createNoteByIndex(beat, type, positionIndex, directionIndex) {
 // ];
 function getNextDirectionIndex(d) {
   if (ENABLE_LESS_DIAGONAL_DIRECTION) {
-    switch(d) {
-      case 0: return jsutl.choose([8,5,5,5,7,7,7]);
-      case 1: return jsutl.choose([7,7,7,7,7,6,8]);
-      case 2: return jsutl.choose([6,3,3,3,7,7,7]);
-      case 3: return jsutl.choose([5,5,5,5,5,2,8]);
-      case 4: return jsutl.choose([4,4,4,4,4,4,4,4,1,3,5,7]);
-      case 5: return jsutl.choose([3,3,3,3,3,0,6]);
-      case 6: return jsutl.choose([2,1,1,1,5,5,5]);
-      case 7: return jsutl.choose([1,1,1,1,1,0,2]);
-      case 8: return jsutl.choose([0,1,1,1,3,3,3]);
+    if (ENABLE_LESS_HORIZONTAL_DIRECTION) {
+      switch(d) {
+        case 0: return jsutl.choose([8,5,7,7,7,7,7]);
+        case 1: return jsutl.choose([7,7,7,7,7,6,8]);
+        case 2: return jsutl.choose([6,3,7,7,7,7,7]);
+        case 3: return jsutl.choose([5,2,8]);
+        case 4: return jsutl.choose([4,4,4,4,4,4,4,4,1,3,5,7]);
+        case 5: return jsutl.choose([3,0,6]);
+        case 6: return jsutl.choose([2,1,1,1,1,1,5]);
+        case 7: return jsutl.choose([1,1,1,1,1,0,2]);
+        case 8: return jsutl.choose([0,1,1,1,1,1,3]);
+      }
+    } else {
+      switch(d) {
+        case 0: return jsutl.choose([8,5,5,5,7,7,7]);
+        case 1: return jsutl.choose([7,7,7,7,7,6,8]);
+        case 2: return jsutl.choose([6,3,3,3,7,7,7]);
+        case 3: return jsutl.choose([5,5,5,5,5,2,8]);
+        case 4: return jsutl.choose([4,4,4,4,4,4,4,4,1,3,5,7]);
+        case 5: return jsutl.choose([3,3,3,3,3,0,6]);
+        case 6: return jsutl.choose([2,1,1,1,5,5,5]);
+        case 7: return jsutl.choose([1,1,1,1,1,0,2]);
+        case 8: return jsutl.choose([0,1,1,1,3,3,3]);
+      }
     }
   } else {
     switch(d) {
@@ -612,51 +628,69 @@ function getPrevObstacle(obstacles) {
 //   4,3,   2, x,
 // ]
 function getNextLeftPositionIndex(p) {
-  let factors = [];
+  let positions = [];
 
   if (isDigonalPosition(p, p-5)) {
-    factors.push(p-5,p-5);
+    positions.push(p-5,p-5);
   }
   if (isSameCol(p, p-4)) {
-    factors.push(p-4);
+    positions.push(p-4);
   }
   if (isDigonalPosition(p, p-3)) {
-    factors.push(p-3);
+    positions.push(p-3);
   }
   if (isSameRow(p, p-1)) {
-    factors.push(p-1,p-1,p-1);
+    positions.push(p-1,p-1,p-1);
   }
   if (isSameRow(p, p+1)) {
-    factors.push(p+1);
+    positions.push(p+1);
   }
   if (isDigonalPosition(p, p+3)) {
-    factors.push(p+3,p+3,p+3,p+3);
+    positions.push(p+3,p+3,p+3,p+3);
   }
   if (isSameCol(p, p+4)) {
-    factors.push(p+4,p+4,p+4);
+    positions.push(p+4,p+4,p+4);
   }
   if (isDigonalPosition(p, p+5)) {
-    factors.push(p+5,p+5);
+    positions.push(p+5,p+5);
   }
 
-  factors = factors.filter(function(f) {
+  positions = positions.filter(function(f) {
     return f >= 0 && f <= 11;
   });
 
-  let len = factors.length;
-  if (ENABLE_LESS_CENTER_POSITION && (p === 5 || p === 6)) {
-    // center
-    len = 1;
-  } else if (ENABLE_LESS_TOP_POSITION && getRow(p) === 0) {
-    // top
-    len = 1;
-  }
-
+  let len = positions.length;
   for (let i = 0; i < len; i++) {
-    factors.push(p);
+    positions.push(p);
   }
 
-  return jsutl.choose(factors);
+  if (ENABLE_LESS_CENTER_POSITION) {
+    let max = 1;
+    for (let i = positions.length - 1; i >= 0; i--) {
+      if (positions[i] === 5 || positions[i] === 6) {
+        if (max < 1) {
+          positions.splice(i, 1);
+        } else {
+          max--;
+        }
+      }
+    }
+  }
+
+  if (ENABLE_LESS_TOP_POSITION) {
+    let max = 1;
+    for (let i = positions.length - 1; i >= 0; i--) {
+      if (getRow(positions[i]) === 0) {
+        if (max < 1) {
+          positions.splice(i, 1);
+        } else {
+          max--;
+        }
+      }
+    }
+  }
+
+  return jsutl.choose(positions);
 }
 
 // [
@@ -665,51 +699,65 @@ function getNextLeftPositionIndex(p) {
 //   x, 2,3,   4,
 // ]
 function getNextRightPositionIndex(p) {
-  let factors = [];
+  let positions = [];
 
   if (isDigonalPosition(p, p-5)) {
-    factors.push(p-5);
+    positions.push(p-5);
   }
   if (isSameCol(p, p-4)) {
-    factors.push(p-4);
+    positions.push(p-4);
   }
   if (isDigonalPosition(p, p-3)) {
-    factors.push(p-3,p-3);
+    positions.push(p-3,p-3);
   }
   if (isSameRow(p, p-1)) {
-    factors.push(p-1);
+    positions.push(p-1);
   }
   if (isSameRow(p, p+1)) {
-    factors.push(p+1,p+1,p+1);
+    positions.push(p+1,p+1,p+1);
   }
   if (isDigonalPosition(p, p+3)) {
-    factors.push(p+3,p+3);
+    positions.push(p+3,p+3);
   }
   if (isSameCol(p, p+4)) {
-    factors.push(p+4,p+4,p+4);
+    positions.push(p+4,p+4,p+4);
   }
   if (isDigonalPosition(p, p+5)) {
-    factors.push(p+5,p+5,p+5,p+5);
+    positions.push(p+5,p+5,p+5,p+5);
   }
   
-  factors = factors.filter(function(f) {
-    return f >= 0 && f <= 11;
-  });
-
-  let len = factors.length;
-  if (ENABLE_LESS_CENTER_POSITION && (p === 5 || p === 6)) {
-    // center
-    len = 1;
-  } else if (ENABLE_LESS_TOP_POSITION && getRow(p) === 0) {
-    // top
-    len = 1;
-  }
-
+  let len = positions.length;
   for (let i = 0; i < len; i++) {
-    factors.push(p);
+    positions.push(p);
   }
 
-  return jsutl.choose(factors);
+  if (ENABLE_LESS_CENTER_POSITION) {
+    let max = 1;
+    for (let i = positions.length - 1; i >= 0; i--) {
+      if (positions[i] === 5 || positions[i] === 6) {
+        if (max < 1) {
+          positions.splice(i, 1);
+        } else {
+          max--;
+        }
+      }
+    }
+  }
+
+  if (ENABLE_LESS_TOP_POSITION) {
+    let max = 1;
+    for (let i = positions.length - 1; i >= 0; i--) {
+      if (getRow(positions[i]) === 0) {
+        if (max < 1) {
+          positions.splice(i, 1);
+        } else {
+          max--;
+        }
+      }
+    }
+  }
+
+  return jsutl.choose(positions);
 }
 
 function createNextLeftNote(beat, prevNote) {
@@ -994,6 +1042,7 @@ async function generate(srcPath) {
   }, 0) / energies.length;
 
   const info = createInfo(songName, authorName, tempo);
+  const characteristicNames = ["Standard", "Standard", "Standard", "Standard", "Standard"];
   const difficulties = ["easy", "normal", "hard", "expert", "expertPlus"];
   let dirName = `${songName.replace(/[/\\?%*:|"<>]/g, '_')}`;
   let dirIndex = 0;
@@ -1011,6 +1060,7 @@ async function generate(srcPath) {
   
   for (let i = 0; i < difficulties.length; i++) {
     const difficulty = difficulties[i];
+    const characteristicName = characteristicNames[i];
     const level = createLevel();
     const {colorNotes, bombNotes, obstacles, sliders, burstSliders} = level;
     let {
@@ -1071,6 +1121,17 @@ async function generate(srcPath) {
     let countRightConnectedNotes = 0;
     let countLeftNotes = 0;
     let countRightNotes = 0;
+    let countLargeEnergies = 0;
+    let countPositions = [
+      0,0,0,0,
+      0,0,0,0,
+      0,0,0,0,
+    ];
+    let countDirections = [
+      0,0,0,
+      0,0,0,
+      0,0,0,
+    ];
     for (let j = 0; j < convertedBeats.length; j++) {
       let { beat, energe } = convertedBeats[j];
       let prevObstacle = getPrevObstacle(obstacles);
@@ -1091,34 +1152,34 @@ async function generate(srcPath) {
       let currRightNote;
       let countErrors = 0;
 
+      if (isLargeEnerge) {
+        countLargeEnergies += 1;
+      }
+
       // check prev note
-      if (isLeftConnected) {
+      if (isLeftConnected && isLeftNoteCreatable) {
         if (!prevRightNote || prevLeftNote.b > prevRightNote.b) {
-          if (isLeftNoteCreatable) {
-            isLeftFirst = true;
-            createLeftNote = true;
-          }
+          isLeftFirst = true;
+          createLeftNote = true;
         }
       }
-      if (isRightConnected) {
+      if (isRightConnected && isRightNoteCreatable) {
         if (!prevLeftNote || prevLeftNote.b < prevRightNote.b) {
-          if (isRightNoteCreatable) {
-            isLeftFirst = false;
-            createRightNote = true;
-          }
+          isLeftFirst = false;
+          createRightNote = true;
         }
       }
 
       if (isLeftFirst) {
         if (isLeftNoteCreatable && !createLeftNote) {
-          createLeftNote = Math.random() < noteSpawnRates[0];
+          createLeftNote = Math.random() < noteSpawnRates[0] + (isLargeEnerge ? 0.25 : 0);
         }
         if (isRightNoteCreatable && !createRightNote) {
-          createRightNote = Math.random() < noteSpawnRates[1];
+          createRightNote = Math.random() < noteSpawnRates[1]
         }
       } else {
         if (isRightNoteCreatable && !createRightNote) {
-          createRightNote = Math.random() < noteSpawnRates[0];
+          createRightNote = Math.random() < noteSpawnRates[0] + (isLargeEnerge ? 0.25 : 0);
         }
         if (isLeftNoteCreatable && !createLeftNote) {
           createLeftNote = Math.random() < noteSpawnRates[1];
@@ -1203,12 +1264,16 @@ async function generate(srcPath) {
       if (currLeftNote) {
         countLeftNotes += 1;
         countLeftConnectedNotes += isLeftConnected ? 1 : 0;
+        countPositions[getPotisionIndex(currLeftNote.x, currLeftNote.y)] += 1;
+        countDirections[getDirectionIndex(currLeftNote.d)] += 1;
         colorNotes.push(currLeftNote);
       }
       
       if (currRightNote) {
         countRightNotes += 1;
         countRightConnectedNotes += isRightConnected ? 1 : 0;
+        countPositions[getPotisionIndex(currRightNote.x, currRightNote.y)] += 1;
+        countDirections[getDirectionIndex(currRightNote.d)] += 1;
         colorNotes.push(currRightNote);
       }
     }
@@ -1216,9 +1281,7 @@ async function generate(srcPath) {
     // link left notes (slider)
     for (let i = 0; i < colorNotes.length; i++) {
       let a = colorNotes[i];
-      let aIndex = i;
       let b;
-      let bIndex;
 
       // right note
       if (a.c !== 0) {
@@ -1229,7 +1292,6 @@ async function generate(srcPath) {
         if (colorNotes[j].c === 0) {
           if (chkTailNoteDirection(a.d, colorNotes[j].d)) {
             b = colorNotes[j];
-            bIndex = j;
           }
           break;
         }
@@ -1244,10 +1306,6 @@ async function generate(srcPath) {
         if (Math.random() < sliderSpawnRate) {
           const slider = createSliderNote(a, b);
           sliders.push(slider);
-
-          // remove a, b
-          // colorNotes.splice(bIndex, 1);
-          // colorNotes.splice(aIndex, 1);
         }
       }
     }
@@ -1255,9 +1313,7 @@ async function generate(srcPath) {
     // link right notes (slider)
     for (let i = 0; i < colorNotes.length; i++) {
       let a = colorNotes[i];
-      let aIndex = i;
       let b;
-      let bIndex;
 
       // right note
       if (a.c !== 1) {
@@ -1268,7 +1324,6 @@ async function generate(srcPath) {
         if (colorNotes[j].c === 1) {
           if (chkTailNoteDirection(a.d, colorNotes[j].d)) {
             b = colorNotes[j];
-            bIndex = j;
           }
           break;
         }
@@ -1283,26 +1338,36 @@ async function generate(srcPath) {
         if (Math.random() < sliderSpawnRate) {
           const slider = createSliderNote(a, b);
           sliders.push(slider);
-
-          // remove a, b
-          // colorNotes.splice(bIndex, 1);
-          // colorNotes.splice(aIndex, 1);
         }
       }
     }
 
     // debug
-    console.log(`> ${songName}, ${Math.floor(data.duration)} s, ${tempo} bpm, ${difficulty}.`);
-    // console.log(`> Total ${colorNotes.length} notes`);
+    console.log(`> ${songName}, ${Math.floor(data.duration)} s, ${tempo} bpm, ${characteristicName}, ${difficulty}.`);
+    console.log(`> Total ${colorNotes.length} notes, ${countLargeEnergies} large energe notes`);
     console.log(`> ${countLeftNotes} left notes, ${countLeftConnectedNotes} connected.`);
     console.log(`> ${countRightNotes} right notes, ${countRightConnectedNotes} connected.`);
     console.log(`> ${bombNotes.length} bombs.`);
     console.log(`> ${obstacles.length} obstacles.`);
     console.log(`> ${sliders.length} sliders.`);
-    console.log(`> ${burstSliders.length} burst sliders.\n`);
+    console.log(`> ${burstSliders.length} burst sliders.`);
+    console.log(``);
+
+    // debug details
+    console.log(`> note positions`);
+    console.log(`  ${String(countPositions[0]).padStart(4, " ")} ${String(countPositions[1]).padStart(4, " ")} ${String(countPositions[2]).padStart(4, " ")} ${String(countPositions[3]).padStart(4, " ")}`);
+    console.log(`  ${String(countPositions[4]).padStart(4, " ")} ${String(countPositions[5]).padStart(4, " ")} ${String(countPositions[6]).padStart(4, " ")} ${String(countPositions[7]).padStart(4, " ")}`);
+    console.log(`  ${String(countPositions[8]).padStart(4, " ")} ${String(countPositions[9]).padStart(4, " ")} ${String(countPositions[10]).padStart(4, " ")} ${String(countPositions[11]).padStart(4, " ")}`);
+    console.log(``);
+
+    console.log(`> note directions`);
+    console.log(`  ${String(countDirections[0]).padStart(4, " ")} ${String(countDirections[1]).padStart(4, " ")} ${String(countDirections[2]).padStart(4, " ")}`);
+    console.log(`  ${String(countDirections[3]).padStart(4, " ")} ${String(countDirections[4]).padStart(4, " ")} ${String(countDirections[5]).padStart(4, " ")}`);
+    console.log(`  ${String(countDirections[6]).padStart(4, " ")} ${String(countDirections[7]).padStart(4, " ")} ${String(countDirections[8]).padStart(4, " ")}`);
+    console.log(``);
 
     // add diff to info
-    const diff = addDiff(info, difficulty);
+    const diff = addDiff(info, difficulty, characteristicName);
     const filename = diff._beatmapFilename;
 
     // save level.dat
