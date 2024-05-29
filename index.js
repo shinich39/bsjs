@@ -342,14 +342,14 @@ function getDirectionIndex(d) {
 
 // only support vertical obstacle
 function getObstaclePositionIndexes(o) {
-  let indexes = [];
+  let positions = [];
   for (let i = 0; i < o.w; i++) {
     for (let j = 2; j >= 0; j--) {
       const p = getPotisionIndex(o.x + i, j);
-      indexes.push(p);
+      positions.push(p);
     }
   }
-  return indexes;
+  return positions;
 }
 
 // const POSITIONS = [
@@ -479,22 +479,22 @@ function chkDupeNotes(l, r) {
   return false;
 }
 
-function chkSamePosition(l, r) {
-  if (!l || !r) {
+function chkSamePosition(a, b) {
+  if (!a || !b) {
     return false;
   }
-  const lp = getPotisionIndex(l.x, l.y);
-  const rp = getPotisionIndex(r.x, r.y);
-  return lp === rp;
+  const ap = getPotisionIndex(a.x, a.y);
+  const bp = getPotisionIndex(b.x, b.y);
+  return ap === bp;
 }
 
 function chkOverlappedObstacle(o, n) {
   if (!o || !n) {
     return false;
   }
-  const ops = getObstaclePositionIndexes(o);
+  const op = getObstaclePositionIndexes(o);
   const np = getPotisionIndex(n.x, n.y);
-  return ops.indexOf(np) > -1;
+  return op.indexOf(np) > -1;
 }
 
 // [
@@ -616,10 +616,10 @@ function getPrevRightNote(colorNotes) {
 }
 
 function getPrevObstacle(obstacles) {
-  for (let i = obstacles.length - 1; i >= 0; i--) {
-    return obstacles[i];
-  }
-  return null;
+  // for (let i = obstacles.length - 1; i >= 0; i--) {
+  //   return obstacles[i];
+  // }
+  return obstacles[obstacles.length - 1] || null;
 }
 
 // [
@@ -655,14 +655,14 @@ function getNextLeftPositionIndex(p) {
     positions.push(p+5,p+5);
   }
 
-  positions = positions.filter(function(f) {
-    return f >= 0 && f <= 11;
-  });
-
   let len = positions.length;
   for (let i = 0; i < len; i++) {
     positions.push(p);
   }
+
+  positions = positions.filter(function(pos) {
+    return pos >= 0 && pos <= 11;
+  });
 
   if (ENABLE_LESS_CENTER_POSITION) {
     let max = 1;
@@ -730,6 +730,10 @@ function getNextRightPositionIndex(p) {
   for (let i = 0; i < len; i++) {
     positions.push(p);
   }
+
+  positions = positions.filter(function(pos) {
+    return pos >= 0 && pos <= 11;
+  });
 
   if (ENABLE_LESS_CENTER_POSITION) {
     let max = 1;
@@ -1204,7 +1208,7 @@ async function generate(srcPath) {
             currLeftNote = createNextLeftNote(beat, isLeftConnected ? prevLeftNote : null);
             countErrors += 1;
             if (countErrors > 390) {
-              currLeftNote = undefined;
+              currLeftNote = null;
               break;
             }
           }
@@ -1221,7 +1225,7 @@ async function generate(srcPath) {
             currRightNote = createNextRightNote(beat, isRightConnected ? prevRightNote : null);
             countErrors += 1;
             if (countErrors > 390) {
-              currRightNote = undefined;
+              currRightNote = null;
               break;
             }
           }
@@ -1238,7 +1242,7 @@ async function generate(srcPath) {
             currRightNote = createNextRightNote(beat, isRightConnected ? prevRightNote : null);
             countErrors += 1;
             if (countErrors > 390) {
-              currRightNote = undefined;
+              currRightNote = null;
               break;
             }
           }
@@ -1255,7 +1259,7 @@ async function generate(srcPath) {
             currLeftNote = createNextLeftNote(beat, isLeftConnected ? prevLeftNote : null);
             countErrors += 1;
             if (countErrors > 390) {
-              currLeftNote = undefined;
+              currLeftNote = null;
               break;
             }
           }
