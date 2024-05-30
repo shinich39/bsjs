@@ -24,7 +24,9 @@ const BACKGROUND_SPACING = 5;
 const ENABLE_BEAT_SPACING = true;
 const ENABLE_LESS_TOP_POSITION = false;
 const ENABLE_LESS_CENTER_POSITION = true;
+const LESS_CENTER_FACTOR_COUNT = 1;
 const ENABLE_LESS_CROSS_POSITION = true;
+const DISABLE_CROSS_POSITION = true;
 const DIFFICULTY_OPTIONS = {
   easy: {
     bufferSize: 0.5,
@@ -75,7 +77,7 @@ const DIFFICULTY_OPTIONS = {
     bombDisappearSpacing: 0.5,
   },
   expert: {
-    bufferSize: 0.4,
+    bufferSize: 0.35,
     minVolume: 0.1,
     energeThreshold: 1.5,
     noteSpawnRates: [0.75, 0.375],
@@ -91,7 +93,7 @@ const DIFFICULTY_OPTIONS = {
     bombDisappearSpacing: 0.5,
   },
   expertPlus: {
-    bufferSize: 0.3,
+    bufferSize: 0.25,
     minVolume: 0.1,
     energeThreshold: 1.5,
     noteSpawnRates: [0.75, 0.5],
@@ -202,9 +204,9 @@ const SAME_POSITION_DIRECTION_CASES = [
 ];
 
 const NEW_DIRECTION_CASES = [
-  [0,8], [1,7], [2,6],
-  [3,5], [4], [5,3],
-  [6,2], [7,1], [8,0],
+  [0,0,8], [1,1,7], [2,2,6],
+  [3,3,5], [4,4,4], [5,5,3],
+  [6,6,2], [7,7,1], [8,8,0],
 ];
 
 const SLIDER_TAIL_DIRECTION_CASES = [
@@ -551,18 +553,25 @@ function chkDupeNotes(l, r) {
   if (lp === rp) {
     return true;
   }
-  // same row, crossed
-  if (isSameRow(lp, rp) && lp > rp) {
+  // any row, crossed
+  if (DISABLE_CROSS_POSITION && getCol(lp) > getCol(rp)) {
     return true;
   }
-  // same row, no space, blocked slide
-  if (isSameRow(lp, rp) && getColDiff(lp, rp) === 1) {
+  // same row, crossed
+  if (isSameRow(lp, rp) && getCol(lp) > getCol(rp)) {
+    return true;
+  }
+  // same row, any space
+  if (isSameRow(lp, rp)) {
     if (ld === 3 || ld === 5) {
       return true;
     }
     if (rd === 3 || rd === 5) {
       return true;
     }
+  }
+  // same row, no space
+  if (isSameRow(lp, rp) && getColDiff(lp, rp) === 1) {
     if (lp < rp) {
       // l: left, r: right
       if (ld !== rd) {
@@ -585,14 +594,17 @@ function chkDupeNotes(l, r) {
       }
     }
   }
-  // same col, no space, blocked slide
-  if (isSameCol(lp, rp) && getRowDiff(lp, rp) === 1) {
+  // same col, any space
+  if (isSameCol(lp, rp)) {
     if (ld === 1 || ld === 7) {
       return true;
     }
     if (rd === 1 || rd === 7) {
       return true;
     }
+  }
+  // same col, no space
+  if (isSameCol(lp, rp) && getRowDiff(lp, rp) === 1) {
     if (lp < rp) {
       // l: top, r: bottom
       if (ld !== rd) {
@@ -829,7 +841,7 @@ function getNextLeftPositionIndex(lp, rp) {
   positions = jsu.shuffle(positions);
 
   if (ENABLE_LESS_CENTER_POSITION) {
-    let max = 1;
+    let max = LESS_CENTER_FACTOR_COUNT;
     for (let i = positions.length - 1; i >= 0; i--) {
       if (positions[i] === 5) {
         if (max < 1) {
@@ -840,7 +852,7 @@ function getNextLeftPositionIndex(lp, rp) {
       }
     }
 
-    max = 1;
+    max = LESS_CENTER_FACTOR_COUNT;
     for (let i = positions.length - 1; i >= 0; i--) {
       if (positions[i] === 6) {
         if (max < 1) {
@@ -944,7 +956,7 @@ function getNextRightPositionIndex(rp, lp) {
   positions = jsu.shuffle(positions);
 
   if (ENABLE_LESS_CENTER_POSITION) {
-    let max = 1;
+    let max = LESS_CENTER_FACTOR_COUNT;
     for (let i = positions.length - 1; i >= 0; i--) {
       if (positions[i] === 5) {
         if (max < 1) {
@@ -955,7 +967,7 @@ function getNextRightPositionIndex(rp, lp) {
       }
     }
 
-    max = 1;
+    max = LESS_CENTER_FACTOR_COUNT;
     for (let i = positions.length - 1; i >= 0; i--) {
       if (positions[i] === 6) {
         if (max < 1) {
