@@ -57,6 +57,8 @@ npm start
 - Add slider
 - Less digonal direction
 - Less center note (head position note)
+- Add environments
+- Change note speed
 
 ## References
 
