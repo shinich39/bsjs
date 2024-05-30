@@ -1,12 +1,15 @@
 # bsjs
 
-Generate BeatSaber custom map in javascript.
+Generate BeatSaber custom map javascript.
 
 This library for generate pre-map.
 
-Generate v3 map, no bombs, no burst sliders, no environments, no lighting...
-
 Please edit map to beat saber custom map editor when after generate. (e.g. chroMapper)
+
+## Version
+
+- info.dat: v2.1.0
+- map: v3.0.0
 
 ## Requirement
 

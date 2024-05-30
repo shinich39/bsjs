@@ -6,8 +6,16 @@ import bs from "./index.js";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const INPUT_PATH = path.join(__dirname, "input");
+const INPUT_HELP_FILE = path.join(__dirname, "input", "PUT_MUSIC_FILES_HERE");
 
 ;(async function() {
+  if (!fs.existsSync(INPUT_PATH)) {
+    fs.mkdirSync(INPUT_PATH);
+  }
+  if (!fs.existsSync(INPUT_HELP_FILE)) {
+    fs.writeFileSync(INPUT_HELP_FILE, "", { encoding: "utf8" });
+  }
+  
   let startedAt = Date.now();
   let count = 0;
   for (const file of fs.readdirSync(INPUT_PATH)) {

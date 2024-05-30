@@ -14,7 +14,7 @@ const TMP_PATH = path.join(__dirname, "tmp");
 const COVER_PATH = path.join(__dirname, "cover.jpg");
 const OUTPUT_PATH = path.join(__dirname, "output");
 
-const INFO_VERSION = '2.0.0';
+const INFO_VERSION = '2.1.0';
 const MAP_VERSION = '3.0.0';
 const PREVIEW_START_TIME = 10;
 const PREVIEW_DURATION = 30;
@@ -105,6 +105,33 @@ const DIFFICULTY_OPTIONS = {
   },
 }
 
+const ENVIRONMENTS = [
+  // "DefaultEnvironment",
+  "TriangleEnvironment",
+  "NiceEnvironment",
+  "BigMirrorEnvironment",
+  "KDAEnvironment",
+  "MonstercatEnvironment",
+  "CrabRaveEnvironment",
+  "DragonsEnvironment",
+  "OriginsEnvironment",
+  "PanicEnvironment",
+  "RocketEnvironment",
+  "GreenDayEnvironment",
+  "GreenDayGrenadeEnvironment",
+  "TimbalandEnvironment",
+  "FitBeatEnvironment",
+  "LinkinParkEnvironment",
+  "BTSEnvironment",
+  "KaleidoscopeEnvironment",
+  "InterscopeEnvironment",
+  "SkrillexEnvironment",
+  "BillieEnvironment",
+  "HalloweenEnvironment",
+  "GagaEnvironment",
+  "GlassDesertEnvironment",
+]
+
 const POSITIONS = [
   0,1,2,3,
   4,5,6,7,
@@ -151,42 +178,51 @@ const RIGHT_POSITION_COUNT = [
 // ]
 const LEFT_NOTE_FORMATS = [
   // top
+  // [0,0], [0,1], [0,3],
   [0,0], [0,1], [0,3],
   [0,0], [0,1], [0,3],
   [0,0], [0,1], [0,3],
   [0,0], [0,1], [0,3],
 
+  // [1,1], [1,2], [1,5],
   [1,1], [1,2], [1,5],
   [1,1], [1,2], [1,5],
   [1,1], [1,2], [1,5],
 
+  // [2,1], [2,2], [2,5],
   [2,1], [2,2], [2,5],
 
   // [3,1], [3,2], [3,5],
 
   // middle
+  // [4,0], [4,3], [4,6],
   [4,0], [4,3], [4,6],
   [4,0], [4,3], [4,6],
   [4,0], [4,3], [4,6],
   [4,0], [4,3], [4,6],
   [4,0], [4,3], [4,6],
 
+  // [5,2], [5,5], [5,8],
   [5,2], [5,5], [5,8],
 
+  // [6,2], [6,5], [6,8],
   [6,2], [6,5], [6,8],
 
   // [7,2], [7,5], [7,8],
 
   // bottom
+  // [8,3], [8,6], [8,7],
   [8,3], [8,6], [8,7],
   [8,3], [8,6], [8,7],
   [8,3], [8,6], [8,7],
   [8,3], [8,6], [8,7],
 
+  // [9,5], [9,7], [9,8],
   [9,5], [9,7], [9,8],
   [9,5], [9,7], [9,8],
   [9,5], [9,7], [9,8],
 
+  // [10,5], [10,7], [10,8],
   [10,5], [10,7], [10,8],
 
   // [11,5], [11,7], [11,8],
@@ -202,12 +238,15 @@ const RIGHT_NOTE_FORMATS = [
   // top
   // [0,0], [0,1], [0,3],
 
+  // [1,0], [1,1], [1,3],
   [1,0], [1,1], [1,3],
 
+  // [2,0], [2,1], [2,3],
   [2,0], [2,1], [2,3],
   [2,0], [2,1], [2,3],
   [2,0], [2,1], [2,3],
 
+  // [3,1], [3,2], [3,5],
   [3,1], [3,2], [3,5],
   [3,1], [3,2], [3,5],
   [3,1], [3,2], [3,5],
@@ -216,10 +255,13 @@ const RIGHT_NOTE_FORMATS = [
   // middle
   // [4,0], [4,3], [4,6],
 
+  // [5,0], [5,3], [5,6],
   [5,0], [5,3], [5,6],
 
+  // [6,0], [6,3], [6,6],
   [6,0], [6,3], [6,6],
 
+  // [7,2], [7,5], [7,8],
   [7,2], [7,5], [7,8],
   [7,2], [7,5], [7,8],
   [7,2], [7,5], [7,8],
@@ -229,12 +271,15 @@ const RIGHT_NOTE_FORMATS = [
   // bottom
   // [8,3], [8,6], [8,7],
 
+  // [9,3], [9,6], [9,7],
   [9,3], [9,6], [9,7],
 
+  // [10,3], [10,6], [10,7],
   [10,3], [10,6], [10,7],
   [10,3], [10,6], [10,7],
   [10,3], [10,6], [10,7],
 
+  // [11,5], [11,7], [11,8],
   [11,5], [11,7], [11,8],
   [11,5], [11,7], [11,8],
   [11,5], [11,7], [11,8],
@@ -286,7 +331,8 @@ function createInfo(songName, authorName, bpm) {
     '_songFilename': 'song.egg',
     '_coverImageFilename': 'cover.jpg',
     "_allDirectionsEnvironmentName": "GlassDesertEnvironment",
-    '_environmentName': 'DefaultEnvironment',
+    '_environmentName': jsu.choose(ENVIRONMENTS),
+    '_environmentNames': ENVIRONMENTS,
     '_customData': {},
     '_difficultyBeatmapSets': []
   }
@@ -302,27 +348,27 @@ function addDiff(info, difficulty, offset = 0, characteristicName = "Standard") 
     case "easy":
       _difficulty = "Easy";
       _difficultyRank = 1;
-      _noteJumpMovementSpeed = jsu.choose([7,8]);
+      _noteJumpMovementSpeed = jsu.choose([8,9,10]);
       break;
     case "normal":
       _difficulty = "Normal";
       _difficultyRank = 3;
-      _noteJumpMovementSpeed = jsu.choose([9,10]);
+      _noteJumpMovementSpeed = jsu.choose([10,11,12]);
       break;
     case "hard":
       _difficulty = "Hard";
       _difficultyRank = 5;
-      _noteJumpMovementSpeed = jsu.choose([11,12]);
+      _noteJumpMovementSpeed = jsu.choose([12,13,14]);
       break;
     case "expert":
       _difficulty = "Expert";
       _difficultyRank = 7;
-      _noteJumpMovementSpeed = jsu.choose([13,14]);
+      _noteJumpMovementSpeed = jsu.choose([14,15,16]);
       break;
     case "expertPlus":
       _difficulty = "ExpertPlus";
       _difficultyRank = 9;
-      _noteJumpMovementSpeed = jsu.choose([15,16]);
+      _noteJumpMovementSpeed = jsu.choose([16,17,18]);
       break;
   }
 
@@ -336,7 +382,7 @@ function addDiff(info, difficulty, offset = 0, characteristicName = "Standard") 
     _noteJumpStartBeatOffset: offset,
     _customData: {},
 
-    // v3
+    // info v2.1.0 map v3 
     // _beatmapColorSchemeIdx: 0,
     // _environmentNameIdx: 0,
   }
