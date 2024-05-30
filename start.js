@@ -15,7 +15,7 @@ const INPUT_HELP_FILE = path.join(__dirname, "input", "PUT_MUSIC_FILES_HERE");
   if (!fs.existsSync(INPUT_HELP_FILE)) {
     fs.writeFileSync(INPUT_HELP_FILE, "", { encoding: "utf8" });
   }
-  
+
   let startedAt = Date.now();
   let count = 0;
   for (const file of fs.readdirSync(INPUT_PATH)) {

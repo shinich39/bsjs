@@ -20,9 +20,9 @@ const MAP_VERSION = '3.0.0';
 const PREVIEW_START_TIME = 10;
 const PREVIEW_DURATION = 30;
 const START_OFFSET = 2.5;
-const BACKGROUND_SPACING = 10;
+const BACKGROUND_SPACING = 5;
 const ENABLE_BEAT_SPACING = true;
-const ENABLE_LESS_TOP_POSITION = true;
+const ENABLE_LESS_TOP_POSITION = false;
 const ENABLE_LESS_CENTER_POSITION = true;
 const DIFFICULTY_OPTIONS = {
   easy: {
@@ -33,9 +33,9 @@ const DIFFICULTY_OPTIONS = {
     bombSpawnRate: 0,
     obstacleSpawnRate: 0.02,
     sliderSpawnRate: 0.5,
-    beatSpacing: 0.25,
-    noteSpacing: 1,
-    sliderRange: [2, 6],
+    beatSpacing: 1,
+    noteSpacing: 1.5,
+    sliderRange: [2.5, 5],
     noteConnectSpacing: 2,
     obstacleSpacing: 25,
     obstacleDisappearSpacing: 0.5,
@@ -45,13 +45,13 @@ const DIFFICULTY_OPTIONS = {
     bufferSize: 0.5,
     minVolume: 0.4,
     energeThreshold: 1.5,
-    noteSpawnRates: [0.75, 0.1],
+    noteSpawnRates: [0.75, 0.125],
     bombSpawnRate: 0,
     obstacleSpawnRate: 0.02,
     sliderSpawnRate: 0.5,
-    beatSpacing: 0.25,
-    noteSpacing: 0.75,
-    sliderRange: [1.75, 6],
+    beatSpacing: 0.5,
+    noteSpacing: 1,
+    sliderRange: [2, 5],
     noteConnectSpacing: 2.25,
     obstacleSpacing: 20,
     obstacleDisappearSpacing: 0.5,
@@ -67,7 +67,7 @@ const DIFFICULTY_OPTIONS = {
     sliderSpawnRate: 0.5,
     beatSpacing: 0.25,
     noteSpacing: 0.5,
-    sliderRange: [1.25, 5],
+    sliderRange: [1.5, 5],
     noteConnectSpacing: 2,
     obstacleSpacing: 15,
     obstacleDisappearSpacing: 0.5,
@@ -80,7 +80,7 @@ const DIFFICULTY_OPTIONS = {
     noteSpawnRates: [0.75, 0.375],
     bombSpawnRate: 0,
     obstacleSpawnRate: 0.04,
-    sliderSpawnRate: 0.6,
+    sliderSpawnRate: 0.5,
     beatSpacing: 0.25,
     noteSpacing: 0.25,
     sliderRange: [1.25, 5],
@@ -132,16 +132,16 @@ const ENVIRONMENTS = [
   "HalloweenEnvironment",
   "GagaEnvironment",
   // "GlassDesertEnvironment",
-  "WeaveEnvironment",
-  "PyroEnvironment",
-  "EDMEnvironment",
-  "TheSecondEnvironment",
-  "LizzoEnvironment",
-  "TheWeekndEnvironment",
-  "RockMixtapeEnvironment",
-  "Dragons2Environment",
-  "Panic2Environment",
-  "QueenEnvironment",
+  // "WeaveEnvironment",
+  // "PyroEnvironment",
+  // "EDMEnvironment",
+  // "TheSecondEnvironment",
+  // "LizzoEnvironment",
+  // "TheWeekndEnvironment",
+  // "RockMixtapeEnvironment",
+  // "Dragons2Environment",
+  // "Panic2Environment",
+  // "QueenEnvironment",
 ];
 
 const POSITIONS = [
@@ -154,6 +154,12 @@ const DIRECTIONS = [
   0,1,2,
   3,4,5,
   6,7,8,
+];
+
+const REVERSE_DIRECTIONS = [
+  8,7,6,
+  5,4,3,
+  2,1,0,
 ];
 
 const NOTE_POSITIONS = [
@@ -171,21 +177,45 @@ const NOTE_DIRECTIONS = [
 // for connect left note
 const LEFT_POSITION_COUNT = [
   3,2,1,
-  4,8,1,
+  4,12,1,
   3,2,1,
 ];
 
 // for connected right note
 const RIGHT_POSITION_COUNT = [
   1,2,3,
-  1,8,4,
+  1,12,4,
   1,2,3,
+];
+
+const NEW_POSITION_DIRECTION_CASES = [
+  [8,8,8,8,5,7], [7,7,7,7,6,8], [6,6,6,6,3,7],
+  [5,5,5,5,2,8], [4,4,4,4,4,4], [3,3,3,3,0,6],
+  [2,2,2,2,1,5], [1,1,1,1,0,2], [0,0,0,0,1,3],
+];
+
+const SAME_POSITION_DIRECTION_CASES = [
+  [8], [7], [6],
+  [5], [4], [3],
+  [2], [1], [0],
+];
+
+const NEW_DIRECTION_CASES = [
+  [0,8], [1,7], [2,6],
+  [3,5], [4], [5,3],
+  [6,2], [7,1], [8,0],
+];
+
+const SLIDER_TAIL_DIRECTION_CASES = [
+  [8,5,7], [7,6,8],             [6,3,7],
+  [5,2,8], [0,1,2,3,4,5,6,7,8], [3,0,6],
+  [2,1,5], [1,0,2],             [0,1,3],
 ];
 
 // for disconnected left note
 // [
 //   4,3,1,0,
-//   5,1,1,0,
+//   5,0,0,0,
 //   4,3,1,0,
 // ]
 const LEFT_NOTE_FORMATS = [
@@ -215,10 +245,10 @@ const LEFT_NOTE_FORMATS = [
   [4,0], [4,3], [4,6],
 
   // [5,2], [5,5], [5,8],
-  [5,2], [5,5], [5,8],
+  // [5,2], [5,5], [5,8],
 
   // [6,2], [6,5], [6,8],
-  [6,2], [6,5], [6,8],
+  // [6,2], [6,5], [6,8],
 
   // [7,2], [7,5], [7,8],
 
@@ -243,7 +273,7 @@ const LEFT_NOTE_FORMATS = [
 // for disconnected right note
 // [
 //   0,1,3,4,
-//   0,1,1,5,
+//   0,0,0,5,
 //   0,1,3,4,
 // ]
 const RIGHT_NOTE_FORMATS = [
@@ -268,10 +298,10 @@ const RIGHT_NOTE_FORMATS = [
   // [4,0], [4,3], [4,6],
 
   // [5,0], [5,3], [5,6],
-  [5,0], [5,3], [5,6],
+  // [5,0], [5,3], [5,6],
 
   // [6,0], [6,3], [6,6],
-  [6,0], [6,3], [6,6],
+  // [6,0], [6,3], [6,6],
 
   // [7,2], [7,5], [7,8],
   [7,2], [7,5], [7,8],
@@ -409,55 +439,9 @@ function addDiff(info, difficulty, offset = 0, characteristicName = "Standard") 
     _beatmapFilename: _beatmapFilename,
     _noteJumpMovementSpeed: _noteJumpMovementSpeed,
     _noteJumpStartBeatOffset: offset,
-    // info v2.1.0 map v3 
     _beatmapColorSchemeIdx: 0,
     _environmentNameIdx: 0,
-    _customData: {
-      // "_difficultyLabel": "Light Show",
-      // "_suggestions": [
-      //   "Chroma"
-      // ],
-      // "_colorLeft": {
-      //   "r": 1,
-      //   "g": 0.475,
-      //   "b": 0.997
-      // },
-      // "_colorRight": {
-      //   "r": 0.031,
-      //   "g": 0.144,
-      //   "b": 0.686
-      // },
-      // "_envColorLeft": {
-      //   "r": 0.297,
-      //   "g": 0.693,
-      //   "b": 0.57
-      // },
-      // "_envColorRight": {
-      //   "r": 0.543,
-      //   "g": 0.541,
-      //   "b": 0.541
-      // },
-      // "_envColorLeftBoost": {
-      //   "r": 0.297,
-      //   "g": 0.693,
-      //   "b": 0.57
-      // },
-      // "_envColorRightBoost": {
-      //   "r": 0.904,
-      //   "g": 0.602,
-      //   "b": 1
-      // },
-      // "_obstacleColor": {
-      //   "r": 0.297,
-      //   "g": 0.693,
-      //   "b": 0.57
-      // },
-      // "_envColorWhite": {
-      //   "r": 0.543,
-      //   "g": 0.541,
-      //   "b": 0.541
-      // }
-    },
+    _customData: {},
   }
 
   let _difficultyBeatmapSets = info._difficultyBeatmapSets.find(function(item) {
@@ -478,7 +462,7 @@ function addDiff(info, difficulty, offset = 0, characteristicName = "Standard") 
   return _difficultyBeatmap;
 }
 
-function createLevel(duration) {
+function createLevel() {
   return {
     'version': `${MAP_VERSION}`,
 
@@ -503,9 +487,7 @@ function createLevel(duration) {
       'd': [],
     },
     'useNormalEventsAsCompatibleEvents': true,
-    'customData': {
-      'time': duration,
-    },
+    'customData': {},
   }
 }
 
@@ -717,54 +699,15 @@ function chkOverlappedObstacle(o, n) {
 function chkTailNoteDirection(headDirection, tailDirection) {
   const hd = getDirectionIndex(headDirection);
   const td = getDirectionIndex(tailDirection);
-  switch(hd) {
-    case 0: return [8,5,7].indexOf(td) > -1;
-    case 1: return [7,6,8].indexOf(td) > -1;
-    case 2: return [6,3,7].indexOf(td) > -1;
-    case 3: return [5,2,8].indexOf(td) > -1;
-    case 4: return [0,1,2,3,4,5,6,7,8].indexOf(td) > -1;
-    case 5: return [3,0,6].indexOf(td) > -1;
-    case 6: return [2,1,5].indexOf(td) > -1;
-    case 7: return [1,0,2].indexOf(td) > -1;
-    case 8: return [0,1,3].indexOf(td) > -1;
-  }
+  return SLIDER_TAIL_DIRECTION_CASES[hd].indexOf(td) > -1;
 }
 
 function createNoteByIndex(beat, type, positionIndex, directionIndex) {
   return Object.assign({b: beat, c: type}, NOTE_POSITIONS[positionIndex], NOTE_DIRECTIONS[directionIndex]);
 }
 
-// [
-//   0,1,2,
-//   3,4,5,
-//   6,7,8,
-// ];
 function getNextDirectionIndex(d, isSamePosition) {
-  if (isSamePosition) {
-    switch(d) {
-      case 0: return jsu.choose([8]);
-      case 1: return jsu.choose([7]);
-      case 2: return jsu.choose([6]);
-      case 3: return jsu.choose([5]);
-      case 4: return jsu.choose([4]); // any
-      case 5: return jsu.choose([3]);
-      case 6: return jsu.choose([2]);
-      case 7: return jsu.choose([1]);
-      case 8: return jsu.choose([0]);
-    }
-  } else {
-    switch(d) {
-      case 0: return jsu.choose([8,8,8,5,7]);
-      case 1: return jsu.choose([7,7,7,6,8]);
-      case 2: return jsu.choose([6,6,6,3,7]);
-      case 3: return jsu.choose([5,5,5,2,8]);
-      case 4: return jsu.choose([4,4,4,4,4]); // any
-      case 5: return jsu.choose([3,3,3,0,6]);
-      case 6: return jsu.choose([2,2,2,1,5]);
-      case 7: return jsu.choose([1,1,1,0,2]);
-      case 8: return jsu.choose([0,0,0,1,3]);
-    }
-  }
+  return jsu.choose(isSamePosition ? SAME_POSITION_DIRECTION_CASES[d] : NEW_POSITION_DIRECTION_CASES[d]); 
 }
 
 function getRow(i) {
@@ -814,9 +757,6 @@ function getPrevRightNote(colorNotes) {
 }
 
 function getPrevObstacle(obstacles) {
-  // for (let i = obstacles.length - 1; i >= 0; i--) {
-  //   return obstacles[i];
-  // }
   return obstacles[obstacles.length - 1] || null;
 }
 
@@ -890,7 +830,18 @@ function getNextLeftPositionIndex(p) {
   if (ENABLE_LESS_CENTER_POSITION) {
     let max = 1;
     for (let i = positions.length - 1; i >= 0; i--) {
-      if (positions[i] === 5 || positions[i] === 6) {
+      if (positions[i] === 5) {
+        if (max < 1) {
+          positions.splice(i, 1);
+        } else {
+          max--;
+        }
+      }
+    }
+
+    max = 1;
+    for (let i = positions.length - 1; i >= 0; i--) {
+      if (positions[i] === 6) {
         if (max < 1) {
           positions.splice(i, 1);
         } else {
@@ -915,7 +866,6 @@ function getNextLeftPositionIndex(p) {
 
   return jsu.choose(positions);
 }
-
 
 function getNextRightPositionIndex(p) {
   let positions = [];
@@ -982,7 +932,18 @@ function getNextRightPositionIndex(p) {
   if (ENABLE_LESS_CENTER_POSITION) {
     let max = 1;
     for (let i = positions.length - 1; i >= 0; i--) {
-      if (positions[i] === 5 || positions[i] === 6) {
+      if (positions[i] === 5) {
+        if (max < 1) {
+          positions.splice(i, 1);
+        } else {
+          max--;
+        }
+      }
+    }
+
+    max = 1;
+    for (let i = positions.length - 1; i >= 0; i--) {
+      if (positions[i] === 6) {
         if (max < 1) {
           positions.splice(i, 1);
         } else {
@@ -1008,26 +969,32 @@ function getNextRightPositionIndex(p) {
   return jsu.choose(positions);
 }
 
-function createNextLeftNote(beat, prevNote) {
+function createNextLeftNote(beat, prevLeftNote, currRightNote) {
   let positionIndex, directionIndex;
-  if (!prevNote) {
+  if (!prevLeftNote) {
     [positionIndex, directionIndex] = jsu.choose(LEFT_NOTE_FORMATS);
+    if (currRightNote) {
+      directionIndex = jsu.choose(NEW_DIRECTION_CASES[getDirectionIndex(currRightNote.d)]);
+    }
   } else {
-    const prevPositionIndex = getPotisionIndex(prevNote.x, prevNote.y);
+    const prevPositionIndex = getPotisionIndex(prevLeftNote.x, prevLeftNote.y);
     positionIndex = getNextLeftPositionIndex(prevPositionIndex);
-    directionIndex = getNextDirectionIndex(getDirectionIndex(prevNote.d), positionIndex === prevPositionIndex);
+    directionIndex = getNextDirectionIndex(getDirectionIndex(prevLeftNote.d), positionIndex === prevPositionIndex);
   }
   return createNoteByIndex(beat, 0, positionIndex, directionIndex);
 }
 
-function createNextRightNote(beat, prevNote) {
+function createNextRightNote(beat, prevRightNote, currLeftNote) {
   let positionIndex, directionIndex;
-  if (!prevNote) {
+  if (!prevRightNote) {
     [positionIndex, directionIndex] = jsu.choose(RIGHT_NOTE_FORMATS);
+    if (currLeftNote) {
+      directionIndex = jsu.choose(NEW_DIRECTION_CASES[getDirectionIndex(currLeftNote.d)]);
+    }
   } else {
-    const prevPositionIndex = getPotisionIndex(prevNote.x, prevNote.y);
+    const prevPositionIndex = getPotisionIndex(prevRightNote.x, prevRightNote.y);
     positionIndex = getNextRightPositionIndex(prevPositionIndex);
-    directionIndex = getNextDirectionIndex(getDirectionIndex(prevNote.d), positionIndex === prevPositionIndex);
+    directionIndex = getNextDirectionIndex(getDirectionIndex(prevRightNote.d), positionIndex === prevPositionIndex);
   }
   return createNoteByIndex(beat, 1, positionIndex, directionIndex);
 }
@@ -1053,70 +1020,68 @@ function createSliderNote(headNote, tailNote) {
   };
 }
 
+// const types = [
+//   0,1,2,3,4, // light
+//   5, // color boost legacy (deprecated)
+//   6,7, // light
+//   8,9, // value trigger
+//   10, // light / bpm change legacy
+//   11, // light
+//   12,13, // value
+//   14,15, // lane rotation legacy (deprecated)
+//   16,17,18,19, // value
+//   40,41,42,43, // special
+//   100, // bpm change  (deprecated)
+// ];
+
+// const lightTypes = [0,1,2,3,4,6,7,8,9,11];
+// const valueTypes = [8,9,12,13,16,17,18,19];
+// const testTypes = [
+//   0,1,2,3,4,6,7,8,9,11,
+//   8,9,12,13,16,17,18,19,
+// ];
+
+// const values = [
+//   0, // off
+//   1,2,3,4, // secondary
+//   5,6,7,8, // primary
+//   9,10,11,12, // white
+// ];
+
+// // static, flash, fade, transition
+// const secondaryValues = [
+//   1,2,3,4,
+// ];
+
+// const primaryValues = [
+//   5,6,7,8,
+// ];
+
+// const wihteValues = [
+//   9,10,11,12
+// ];
+
 // https://bsmg.wiki/mapping/map-format/lightshow.html#index-filters
 function createBackgroundEvent(beat) {
+  const types = [0,1,2,3,4,6,7,8,9,11];
+  const values = [0,0,1,2,3,4,5,6,7,8];
   return {
     "b": beat, // Beat
-    "et": jsu.choose(lightTypes), // Type
-    "i": jsu.choose([0,0,1,3,4,5,7,8]), // Value
-    "f": 1,// Float Value 0: light off
+    "et": jsu.choose(types), // Type
+    "i": jsu.choose(values), // Value
+    "f": 1,// Float Value
   };
 }
 
 // https://bsmg.wiki/mapping/map-format/lightshow.html#index-filters
-function createBeatmapEvent(beat) {
-  // const types = [
-  //   0,1,2,3,4, // light
-  //   5, // color boost legacy (deprecated)
-  //   6,7, // light
-  //   8,9, // value trigger
-  //   10, // light / bpm change legacy
-  //   11, // light
-  //   12,13, // value
-  //   14,15, // lane rotation legacy (deprecated)
-  //   16,17,18,19, // value
-  //   40,41,42,43, // special
-  //   100, // bpm change  (deprecated)
-  // ];
-
-  const lightTypes = [
-    0,1,2,3,4,6,7,8,9,11,
-  ];
-
-  // const valueTypes = [
-  //   8,9,12,13,16,17,18,19,
-  // ];
-
-  const testTypes = [
-    0,1,2,3,4,6,7,8,9,11,
-    8,9,12,13,16,17,18,19,
-  ];
-
-  // const values = [
-  //   0, // off
-  //   1,2,3,4, // secondary
-  //   5,6,7,8, // primary
-  //   9,10,11,12, // white
-  // ];
-
-  // // static, flash, fade, transition
-  // const primaryValues = [
-  //   5,6,7,8,
-  // ];
-
-  // const secondaryValues = [
-  //   1,2,3,4,
-  // ];
-
-  // const wihteValues = [
-  //   9,10,11,12
-  // ];
-
+function createCutEvent(beat) {
+  const types = [8,9,12,13,16,17,18,19];
+  const values = [0,0,1,2,3,4,5,6,7,8];
   return {
     "b": beat, // Beat
-    "et": jsu.choose(testTypes), // Type
-    "i": jsu.choose([2,3,6,7]), // Value
-    "f": 1, // Float Value 0: light off
+    "et": jsu.choose(types), // Type
+    "i": jsu.choose(values), // Value
+    "f": 1, // Float Value
   };
 }
 
@@ -1442,6 +1407,7 @@ async function generate(srcPath) {
     }
 
     // create notes
+    let backgroundOffset = 0;
     let countLeftConnectedNotes = 0;
     let countRightConnectedNotes = 0;
     let countLeftNotes = 0;
@@ -1458,8 +1424,6 @@ async function generate(srcPath) {
       0,0,0,
       0,0,0,
     ];
-
-    let backgroundOffset = 0;
     for (let j = 0; j < convertedBeats.length; j++) {
       let { beat, energe } = convertedBeats[j];
       let prevObstacle = getPrevObstacle(obstacles);
@@ -1476,18 +1440,10 @@ async function generate(srcPath) {
       let createLeftNote = false;
       let createRightNote = false;
       let currObstacle = isObstacleExists ? prevObstacle : null;
-      let isBeatMapEventAdded = false;
+      let isCutEventAdded = false;
       let currLeftNote;
       let currRightNote;
       let countDupe = 0;
-
-      // set background lighting
-      if (beat >= backgroundOffset + BACKGROUND_SPACING) {
-        if (Math.random() < 0.5) {
-          backgroundOffset = beat;
-          basicBeatmapEvents.push(createBackgroundEvent(beat));
-        }
-      }
 
       // count large energe beat
       if (isLargeEnerge) {
@@ -1552,14 +1508,14 @@ async function generate(srcPath) {
         }
         // create right note
         if (createRightNote) {
-          currRightNote = createNextRightNote(beat, isRightConnected ? prevRightNote : null);
+          currRightNote = createNextRightNote(beat, isRightConnected ? prevRightNote : null, currLeftNote);
           countDupe = 0;
           while(
             chkOverlappedObstacle(currObstacle, currRightNote) || 
             chkSamePosition(prevLeftNote, currRightNote) || 
             chkDupeNotes(currLeftNote, currRightNote)
           ) {
-            currRightNote = createNextRightNote(beat, isRightConnected ? prevRightNote : null);
+            currRightNote = createNextRightNote(beat, isRightConnected ? prevRightNote : null, currLeftNote);
             countDupe += 1;
             if (countDupe > 390) {
               currRightNote = null;
@@ -1588,14 +1544,14 @@ async function generate(srcPath) {
         }
         // create left note
         if (createLeftNote) {
-          currLeftNote = createNextLeftNote(beat, isLeftConnected ? prevLeftNote : null);
+          currLeftNote = createNextLeftNote(beat, isLeftConnected ? prevLeftNote : null, currRightNote);
           countDupe = 0;
           while(
             chkOverlappedObstacle(currObstacle, currLeftNote) || 
             chkSamePosition(prevRightNote, currLeftNote) || 
             chkDupeNotes(currLeftNote, currRightNote)
           ) {
-            currLeftNote = createNextLeftNote(beat, isLeftConnected ? prevLeftNote : null);
+            currLeftNote = createNextLeftNote(beat, isLeftConnected ? prevLeftNote : null, currRightNote);
             countDupe += 1;
             if (countDupe > 390) {
               currLeftNote = null;
@@ -1606,36 +1562,59 @@ async function generate(srcPath) {
         }
       }
 
+      // count left note
       if (currLeftNote) {
         countLeftNotes += 1;
         countLeftConnectedNotes += isLeftConnected ? 1 : 0;
         countPositions[getPotisionIndex(currLeftNote.x, currLeftNote.y)] += 1;
         countDirections[getDirectionIndex(currLeftNote.d)] += 1;
-        colorNotes.push(currLeftNote);
 
         // add light event
-        if (!isBeatMapEventAdded) {
-          basicBeatmapEvents.push(createBeatmapEvent(beat));
-          isBeatMapEventAdded = true;
+        if (!isCutEventAdded) {
+          basicBeatmapEvents.push(createCutEvent(beat));
+          isCutEventAdded = true;
         }
       }
       
+      // count right note
       if (currRightNote) {
         countRightNotes += 1;
         countRightConnectedNotes += isRightConnected ? 1 : 0;
         countPositions[getPotisionIndex(currRightNote.x, currRightNote.y)] += 1;
         countDirections[getDirectionIndex(currRightNote.d)] += 1;
-        colorNotes.push(currRightNote);
 
         // add light event
-        if (!isBeatMapEventAdded) {
-          basicBeatmapEvents.push(createBeatmapEvent(beat));
-          isBeatMapEventAdded = true;
+        if (!isCutEventAdded) {
+          basicBeatmapEvents.push(createCutEvent(beat));
+          isCutEventAdded = true;
         }
+      }
+
+      // add note to array
+      if (isLeftFirst) {
+        if (currLeftNote) {
+          colorNotes.push(currLeftNote);
+        }
+        if (currRightNote) {
+          colorNotes.push(currRightNote);
+        }
+      } else {
+        if (currRightNote) {
+          colorNotes.push(currRightNote);
+        }
+        if (currLeftNote) {
+          colorNotes.push(currLeftNote);
+        }
+      }
+
+      // add background lighting
+      if (beat >= backgroundOffset + BACKGROUND_SPACING && Math.random() < 0.5) {
+        backgroundOffset = beat;
+        basicBeatmapEvents.push(createBackgroundEvent(beat));
       }
     }
 
-    // link left notes (slider)
+    // create left slider
     for (let i = 0; i < colorNotes.length; i++) {
       if (colorNotes[i].c !== 0) {
         continue;
@@ -1665,7 +1644,7 @@ async function generate(srcPath) {
       }
     }
 
-    // link right notes (slider)
+    // create right slider
     for (let i = 0; i < colorNotes.length; i++) {
       if (colorNotes[i].c !== 1) {
         continue;
@@ -1709,6 +1688,7 @@ async function generate(srcPath) {
     console.log(`> ${obstacles.length} obstacles.`);
     console.log(`> ${sliders.length} sliders.`);
     console.log(`> ${burstSliders.length} burst sliders.`);
+    console.log(`> ${basicBeatmapEvents.length} beatmap events.`);
     console.log(`> ${countPassedNotes} notes passed. (invalid position, invalid direction)`);
     console.log(``);
 
