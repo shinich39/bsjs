@@ -129,7 +129,7 @@ const ENVIRONMENTS = [
   "BillieEnvironment",
   "HalloweenEnvironment",
   "GagaEnvironment",
-  "GlassDesertEnvironment",
+  // "GlassDesertEnvironment",
 ]
 
 const POSITIONS = [
