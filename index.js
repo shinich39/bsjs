@@ -15,10 +15,12 @@ const COVER_PATH = path.join(__dirname, "cover.jpg");
 const OUTPUT_PATH = path.join(__dirname, "output");
 
 const INFO_VERSION = '2.1.0';
+const BPM_INFO_VERSION = '2.0.0';
 const MAP_VERSION = '3.0.0';
 const PREVIEW_START_TIME = 10;
 const PREVIEW_DURATION = 30;
 const START_OFFSET = 2.5;
+const BACKGROUND_SPACING = 10;
 const ENABLE_BEAT_SPACING = true;
 const ENABLE_LESS_TOP_POSITION = true;
 const ENABLE_LESS_CENTER_POSITION = true;
@@ -106,7 +108,7 @@ const DIFFICULTY_OPTIONS = {
 }
 
 const ENVIRONMENTS = [
-  // "DefaultEnvironment",
+  "DefaultEnvironment",
   "TriangleEnvironment",
   "NiceEnvironment",
   "BigMirrorEnvironment",
@@ -130,7 +132,17 @@ const ENVIRONMENTS = [
   "HalloweenEnvironment",
   "GagaEnvironment",
   // "GlassDesertEnvironment",
-]
+  "WeaveEnvironment",
+  "PyroEnvironment",
+  "EDMEnvironment",
+  "TheSecondEnvironment",
+  "LizzoEnvironment",
+  "TheWeekndEnvironment",
+  "RockMixtapeEnvironment",
+  "Dragons2Environment",
+  "Panic2Environment",
+  "QueenEnvironment",
+];
 
 const POSITIONS = [
   0,1,2,3,
@@ -330,12 +342,29 @@ function createInfo(songName, authorName, bpm) {
     '_previewDuration': PREVIEW_DURATION,
     '_songFilename': 'song.egg',
     '_coverImageFilename': 'cover.jpg',
-    "_allDirectionsEnvironmentName": "GlassDesertEnvironment",
     '_environmentName': jsu.choose(ENVIRONMENTS),
-    '_environmentNames': ENVIRONMENTS,
+    "_allDirectionsEnvironmentName": "GlassDesertEnvironment", // v2.0.0
+    '_environmentNames': [], // v2.1.0
+    "_colorSchemes": [], // v2.1.0
     '_customData': {},
-    '_difficultyBeatmapSets': []
+    '_difficultyBeatmapSets': [],
   }
+}
+
+function createBMPInfo(countSamples, sampleRate, lastBeat) {
+  return {
+    "_version": BPM_INFO_VERSION,
+    "_songSampleCount": countSamples,
+    "_songFrequency": sampleRate,
+    "_regions": [
+      {
+        "_startSampleIndex": 0,
+        "_endSampleIndex": countSamples,
+        "_startBeat": 0,
+        "_endBeat": lastBeat,
+      }
+    ]
+  };
 }
 
 function addDiff(info, difficulty, offset = 0, characteristicName = "Standard") {
@@ -380,11 +409,55 @@ function addDiff(info, difficulty, offset = 0, characteristicName = "Standard") 
     _beatmapFilename: _beatmapFilename,
     _noteJumpMovementSpeed: _noteJumpMovementSpeed,
     _noteJumpStartBeatOffset: offset,
-    _customData: {},
-
     // info v2.1.0 map v3 
-    // _beatmapColorSchemeIdx: 0,
-    // _environmentNameIdx: 0,
+    _beatmapColorSchemeIdx: 0,
+    _environmentNameIdx: 0,
+    _customData: {
+      // "_difficultyLabel": "Light Show",
+      // "_suggestions": [
+      //   "Chroma"
+      // ],
+      // "_colorLeft": {
+      //   "r": 1,
+      //   "g": 0.475,
+      //   "b": 0.997
+      // },
+      // "_colorRight": {
+      //   "r": 0.031,
+      //   "g": 0.144,
+      //   "b": 0.686
+      // },
+      // "_envColorLeft": {
+      //   "r": 0.297,
+      //   "g": 0.693,
+      //   "b": 0.57
+      // },
+      // "_envColorRight": {
+      //   "r": 0.543,
+      //   "g": 0.541,
+      //   "b": 0.541
+      // },
+      // "_envColorLeftBoost": {
+      //   "r": 0.297,
+      //   "g": 0.693,
+      //   "b": 0.57
+      // },
+      // "_envColorRightBoost": {
+      //   "r": 0.904,
+      //   "g": 0.602,
+      //   "b": 1
+      // },
+      // "_obstacleColor": {
+      //   "r": 0.297,
+      //   "g": 0.693,
+      //   "b": 0.57
+      // },
+      // "_envColorWhite": {
+      //   "r": 0.543,
+      //   "g": 0.541,
+      //   "b": 0.541
+      // }
+    },
   }
 
   let _difficultyBeatmapSets = info._difficultyBeatmapSets.find(function(item) {
@@ -405,7 +478,7 @@ function addDiff(info, difficulty, offset = 0, characteristicName = "Standard") 
   return _difficultyBeatmap;
 }
 
-function createLevel() {
+function createLevel(duration) {
   return {
     'version': `${MAP_VERSION}`,
 
@@ -417,19 +490,22 @@ function createLevel() {
     'burstSliders': [], // v4: chains
 
     // events
-    'bpmEvents': [],
-    'rotationEvents': [],
     'basicBeatmapEvents': [],
     'colorBoostBeatmapEvents': [],
-    'useNormalEventsAsCompatibleEvents': false,
-    'basicEventTypesWithKeywords': [{'b': []}],
 
-    // maps?
     'waypoints': [],
     'lightColorEventBoxGroups': [],
     'lightRotationEventBoxGroups': [],
-    
-    'customData': {},
+    'lightTranslationEventBoxGroups': [],
+    'bpmEvents': [],
+    'rotationEvents': [],
+    'basicEventTypesWithKeywords': {
+      'd': [],
+    },
+    'useNormalEventsAsCompatibleEvents': true,
+    'customData': {
+      'time': duration,
+    },
   }
 }
 
@@ -977,6 +1053,73 @@ function createSliderNote(headNote, tailNote) {
   };
 }
 
+// https://bsmg.wiki/mapping/map-format/lightshow.html#index-filters
+function createBackgroundEvent(beat) {
+  return {
+    "b": beat, // Beat
+    "et": jsu.choose(lightTypes), // Type
+    "i": jsu.choose([0,0,1,3,4,5,7,8]), // Value
+    "f": 1,// Float Value 0: light off
+  };
+}
+
+// https://bsmg.wiki/mapping/map-format/lightshow.html#index-filters
+function createBeatmapEvent(beat) {
+  // const types = [
+  //   0,1,2,3,4, // light
+  //   5, // color boost legacy (deprecated)
+  //   6,7, // light
+  //   8,9, // value trigger
+  //   10, // light / bpm change legacy
+  //   11, // light
+  //   12,13, // value
+  //   14,15, // lane rotation legacy (deprecated)
+  //   16,17,18,19, // value
+  //   40,41,42,43, // special
+  //   100, // bpm change  (deprecated)
+  // ];
+
+  const lightTypes = [
+    0,1,2,3,4,6,7,8,9,11,
+  ];
+
+  // const valueTypes = [
+  //   8,9,12,13,16,17,18,19,
+  // ];
+
+  const testTypes = [
+    0,1,2,3,4,6,7,8,9,11,
+    8,9,12,13,16,17,18,19,
+  ];
+
+  // const values = [
+  //   0, // off
+  //   1,2,3,4, // secondary
+  //   5,6,7,8, // primary
+  //   9,10,11,12, // white
+  // ];
+
+  // // static, flash, fade, transition
+  // const primaryValues = [
+  //   5,6,7,8,
+  // ];
+
+  // const secondaryValues = [
+  //   1,2,3,4,
+  // ];
+
+  // const wihteValues = [
+  //   9,10,11,12
+  // ];
+
+  return {
+    "b": beat, // Beat
+    "et": jsu.choose(testTypes), // Type
+    "i": jsu.choose([2,3,6,7]), // Value
+    "f": 1, // Float Value 0: light off
+  };
+}
+
 // https://bsmg.wiki/mapping/map-format/beatmap.html
 // 4 x 3 blocks
 // position
@@ -1207,9 +1350,9 @@ async function generate(srcPath) {
     fs.mkdirSync(OUTPUT_PATH);
   }
 
-  const data = wav.decode(wavBuffer);
-  const { tempo } = wav.analyze(data.channelData, data.sampleRate, data.sampleRate * 0.5);
-  const samples = getSamples(data.channelData);
+  const { channelData, sampleRate, duration } = wav.decode(wavBuffer);
+  const { tempo } = wav.analyze(channelData, sampleRate, sampleRate * 0.5);
+  const samples = getSamples(channelData);
   const energies = getEnergies(samples);
   const avgEnerge = energies.reduce(function(prev, curr) {
     return prev + curr;
@@ -1232,12 +1375,13 @@ async function generate(srcPath) {
     fs.mkdirSync(dirPath);
   }
   
+  let lastBeat = 0;
   for (let i = 0; i < difficulties.length; i++) {
     const difficulty = difficulties[i];
     const characteristicName = characteristicNames[i];
     const noteJumpOffset = 0;
     const level = createLevel();
-    const {colorNotes, bombNotes, obstacles, sliders, burstSliders} = level;
+    const {colorNotes, bombNotes, obstacles, sliders, burstSliders, basicBeatmapEvents} = level;
     let {
       bufferSize,
       minVolume,
@@ -1255,8 +1399,7 @@ async function generate(srcPath) {
       bombDisappearSpacing,
     } = DIFFICULTY_OPTIONS[difficulty];
 
-    let { beats } = wav.analyze(data.channelData, data.sampleRate, Math.round(data.sampleRate * bufferSize));
-    
+    let { beats } = wav.analyze(channelData, sampleRate, Math.round(sampleRate * bufferSize));
     let convertedBeats = [];
     for (const beat of beats) {
       // remove low volume
@@ -1291,6 +1434,10 @@ async function generate(srcPath) {
           beat: time,
           energe: energe,
         });
+
+        if (lastBeat < time) {
+          lastBeat = time;
+        }
       }
     }
 
@@ -1311,6 +1458,8 @@ async function generate(srcPath) {
       0,0,0,
       0,0,0,
     ];
+
+    let backgroundOffset = 0;
     for (let j = 0; j < convertedBeats.length; j++) {
       let { beat, energe } = convertedBeats[j];
       let prevObstacle = getPrevObstacle(obstacles);
@@ -1327,9 +1476,18 @@ async function generate(srcPath) {
       let createLeftNote = false;
       let createRightNote = false;
       let currObstacle = isObstacleExists ? prevObstacle : null;
+      let isBeatMapEventAdded = false;
       let currLeftNote;
       let currRightNote;
       let countDupe = 0;
+
+      // set background lighting
+      if (beat >= backgroundOffset + BACKGROUND_SPACING) {
+        if (Math.random() < 0.5) {
+          backgroundOffset = beat;
+          basicBeatmapEvents.push(createBackgroundEvent(beat));
+        }
+      }
 
       // count large energe beat
       if (isLargeEnerge) {
@@ -1454,6 +1612,12 @@ async function generate(srcPath) {
         countPositions[getPotisionIndex(currLeftNote.x, currLeftNote.y)] += 1;
         countDirections[getDirectionIndex(currLeftNote.d)] += 1;
         colorNotes.push(currLeftNote);
+
+        // add light event
+        if (!isBeatMapEventAdded) {
+          basicBeatmapEvents.push(createBeatmapEvent(beat));
+          isBeatMapEventAdded = true;
+        }
       }
       
       if (currRightNote) {
@@ -1462,6 +1626,12 @@ async function generate(srcPath) {
         countPositions[getPotisionIndex(currRightNote.x, currRightNote.y)] += 1;
         countDirections[getDirectionIndex(currRightNote.d)] += 1;
         colorNotes.push(currRightNote);
+
+        // add light event
+        if (!isBeatMapEventAdded) {
+          basicBeatmapEvents.push(createBeatmapEvent(beat));
+          isBeatMapEventAdded = true;
+        }
       }
     }
 
@@ -1531,7 +1701,7 @@ async function generate(srcPath) {
     });
 
     // debug
-    console.log(`> ${songName}, ${Math.floor(data.duration)} s, ${tempo} bpm, ${characteristicName}, ${difficulty}.`);
+    console.log(`> ${songName}, ${Math.floor(duration)} s, ${tempo} bpm, ${characteristicName}, ${difficulty}.`);
     console.log(`> Total ${colorNotes.length} notes, ${countLargeEnergies} large energe notes`);
     console.log(`> ${countLeftNotes} left notes, ${countLeftConnectedNotes} connected.`);
     console.log(`> ${countRightNotes} right notes, ${countRightConnectedNotes} connected.`);
@@ -1585,6 +1755,10 @@ async function generate(srcPath) {
 
   // save info.dat
   fs.writeFileSync(path.join(dirPath, "info.dat"), JSON.stringify(info, null, 2), { encoding: "utf8" });
+
+  // save BPMInfo.dat
+  const bpmInfo = createBMPInfo(samples.length, sampleRate, lastBeat);
+  fs.writeFileSync(path.join(dirPath, "BPMInfo.dat"), JSON.stringify(bpmInfo, null, 2), { encoding: "utf8" });
 
   // create song.egg
   const oggPath = await toOgg(wavPath);

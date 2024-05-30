@@ -58,6 +58,7 @@ npm start
 - Less digonal direction
 - Less center note (head position note)
 - Add environments
+- Add lighting events
 - Change note speed
 
 ## References
