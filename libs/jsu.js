@@ -1,9 +1,5 @@
 'use strict';
 
-let __uniq__ = 0;
-
-// type
-
 function isBoolean(obj) {
   return typeof obj === "boolean";
 }
@@ -108,13 +104,17 @@ function isEmpty(obj) {
   return obj === undefined || isNull(obj);
 }
 
-// number
+function isUndefined(obj) {
+  return obj === undefined;
+}
+
+function isSameType(objA, objB) {
+  return typeof objA === typeof objB && objA.constructor === objB.constructor;
+}
 
 function random(min, max) {
   return Math.random() * (max - min) + min;
 }
-
-// string
 
 function splitInt(str) {
   return str.split(/([0-9]+)/);
@@ -145,7 +145,7 @@ function toFullWidth(str) {
 }
 
 // get diff between two strings
-function match(strA, strB) {
+function compareStrings(strA, strB) {
   // create dp
   function C(a, b) {
     const dp = [];
@@ -223,22 +223,15 @@ function match(strA, strB) {
   return P(M(C(strA, strB), strA, strB), strA, strB);
 }
 
-// compare two strings
-function compare(strA, strB) {
-  return strA.localeCompare(strB, undefined, {
-    numeric: true,
-    sensitivity: 'base',
-  });
-}
-
-// objectId
-function generateUniqueId() {
+// mongodb objectId
+let __uniq__ = 0;
+function id() {
   return Math.floor(new Date().getTime() / 1000).toString(16) + "xxxxxx".replace(/x/g, function(v) {
     return Math.floor(Math.random() * 16).toString(16);
   }) + (__uniq__++).toString(16).padStart(6, "0");
 }
 
-// encrypt string with XOR
+// encrypt string with XOR Cipher
 function xor(str, salt) {
   if (salt.length === 0) {
     return str;
@@ -292,7 +285,7 @@ function parseCommand(str) {
 }
 
 // parse query string in url
-function pasreQueryString(str) {
+function pasreQuery(str) {
   const qs = str.indexOf("?") > -1 ? str.split("?").pop() : str;
   let result = {};
   for (const [key, value] of new URLSearchParams(qs).entries()) {
@@ -305,8 +298,7 @@ function pasreQueryString(str) {
   return result;
 }
 
-// array
-
+// fill array to deepcopied value 
 function createArray(len, value) {
   let arr = new Array(len);
   if (isFunction(value)) {
@@ -329,31 +321,33 @@ function createArray(len, value) {
   return arr;
 }
 
-// get minimum value in array
-function min(arr) {
+function getMinValue(arr) {
   return arr && arr.length > 0 ? arr.reduce(function(prev, curr) {
     return curr < prev ? curr : prev;
   }, arr[0]) : undefined;
 }
 
-// get maximum value in array
-function max(arr) {
+function getMaxValue(arr) {
   return arr && arr.length > 0 ? arr.reduce(function(prev, curr) {
     return curr > prev ? curr : prev;
   }, arr[0]) : undefined;
 }
 
 // Arithmetic mean
-function mean(arr) {
+function getMeanValue(arr) {
   return arr && arr.length > 0 ? arr.reduce(function(prev, curr) {
     return prev + curr;
   }, 0) / arr.length : undefined;
 }
 
-// most frequent
-function mode(arr) {
-  if (!arr) { return; };
-  let seen = {}, maxValue = arr[0], maxCount = 1;
+// Most frequent
+function getModeValue(arr) {
+  if (!arr) {
+    return;
+  };
+  let seen = {}, 
+      maxValue = arr[0], 
+      maxCount = 1;
   for (let i = 0; i < arr.length; i++) {
     const value = arr[i];
     seen[value] = seen[value] ? seen[value] + 1 : 1;
@@ -365,11 +359,73 @@ function mode(arr) {
   return maxValue;
 }
 
-function choose(arr) {
+// sort array ascending order
+function sortArray(arr) {
+  const priorities = [
+    isUndefined,
+    isNull,
+    isBoolean,
+    isNumber,
+    isString,
+    isObject,
+    isArray,
+    isFunction,
+  ];
+  return arr.sort(function(a, b) {
+    const aIdx = priorities.findIndex(function(fn) {
+      return fn(a);
+    });
+
+    const bIdx = priorities.findIndex(function(fn) {
+      return fn(b);
+    });
+
+    if (aIdx !== bIdx) {
+      return aIdx - bIdx;
+    } else if (aIdx === 0 || aIdx === 1) {
+      // undefined, null
+      return 0;
+    } else if (aIdx === 2) {
+      // boolean
+      return a !== b ? (a ? 1 : -1) : 0;
+    } else if (aIdx === 3) {
+      // number
+      return a - b;
+    } else if (aIdx === 4) {
+      // string
+      return a.localeCompare(b, undefined, {
+        numeric: true,
+        sensitivity: 'base',
+      });
+    } else if (aIdx === 5) {
+      // object
+      return Object.keys(a).length - Object.keys(b).length;
+    } else if (aIdx === 6) {
+      // array
+      return a.length - b.length;
+    } else {
+      // function, others
+      return 0;
+    }
+  });
+}
+
+// https://stackoverflow.com/questions/2450954/how-to-randomize-shuffle-a-javascript-array
+function shuffleArray(arr) {
+  let i = arr.length;
+  while (i > 0) {
+    let j = Math.floor(Math.random() * i);
+    i--;
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
+function getRandomValue(arr) {
   return arr[Math.floor(random(0, arr.length))];
 }
 
-function spreadArray(arr) {
+function getAllCases(arr) {
   function getFirstIndexes(a) {
     if (a.length < 1) {
       return;
@@ -410,9 +466,7 @@ function spreadArray(arr) {
   return result;
 }
 
-// object
-
-function clone(obj) {
+function copyObject(obj) {
   const res = isArray(obj) ? [] : {};
   for (const [key, value] of Object.entries(obj)) {
     res[key] = isObject(value) && !isNull(value) ? clone(value) : value;
@@ -420,29 +474,7 @@ function clone(obj) {
   return res;
 }
 
-function observe(obj, cb, deley) {
-  if (!deley) {
-    deley = 10; // 10ms
-  }
-  let _obj = clone(obj);
-  const timer = setInterval(function() {
-    let isChanged = false;
-    for (const key of Object.keys(obj)) {
-      if (_obj[key] !== obj[key]) {
-        isChanged = true;
-        cb(key, _obj[key], obj[key]);
-      }
-    }
-    if (isChanged) {
-      _obj = clone(obj);
-    }
-  }, deley);
-  return function() {
-    clearInterval(timer);
-  };
-}
-
-function query(obj, qry) {
+function queryObject(obj, qry) {
   const QUERY_OPERATORS = {
     and: ["$and"],
     notAnd: ["$notAnd", "$nand"],
@@ -558,9 +590,7 @@ function query(obj, qry) {
   return A(obj, qry);
 }
 
-// size
-
-function contain(src, dst) {
+function getContainedSize(src, dst) {
   const aspectRatio = src.width / src.height;
   if (aspectRatio < dst.width / dst.height) {
     return {
@@ -575,7 +605,7 @@ function contain(src, dst) {
   }
 }
 
-function cover(src, dst) {
+function getCoveredSize(src, dst) {
   const aspectRatio = src.width / src.height;
   if (aspectRatio < dst.width / dst.height) {
     return {
@@ -590,10 +620,13 @@ function cover(src, dst) {
   }
 }
 
-// date
+const wait = function(delay) {
+  return new Promise(function(resolve) {
+    return setTimeout(resolve, delay);
+  });
+}
 
-const __exports__ = {
-  // type
+const __module__ = {
   isBoolean,
   isNumber,
   isNumeric,
@@ -610,50 +643,54 @@ const __exports__ = {
   isEmptyArray,
   isFunction,
   isEmpty,
+  isSameType,
 
-  // number
   random,
+  rand: random,
+  id,
+  xor, // XOR
 
-  // string
-  uniqueId: generateUniqueId,
   splitInt,
   splitFloat,
+
   toHalfWidth,
   toFullWidth,
-  match,
-  compare,
-  xor,
+
+  compare: compareStrings,
+
   parseCommand,
-  pasreQueryString,
+  pasreQuery,
 
-  // array
+  min: getMinValue,
+  minimum: getMinValue,
+  max: getMaxValue,
+  maximum: getMaxValue,
+  avg: getMeanValue,
+  average: getMeanValue,
+  mean: getMeanValue,
+  mode: getModeValue,
+  mostFrequent: getModeValue,
+  
+  choose: getRandomValue,
   array: createArray,
-  min,
-  max,
-  mean,
-  mode,
-  spread: spreadArray,
-  choose,
+  sort: sortArray,
+  shuffle: shuffleArray,
+  cases: getAllCases,
 
-  // object
-  clone,
-  query,
-  observe,
+  copy: copyObject,
+  query: queryObject,
 
-  // size
-  contain,
-  cover,
+  contain: getContainedSize,
+  cover: getCoveredSize,
 
-  // date
+  wait,
 }
 
 // esm
-export default __exports__;
+export default __module__;
 
 // cjs
-// module.exports = __exports__;
+// module.exports = __module__;
 
 // browser
-// if (window.jsutl === undefined) {
-//   window.jsutl = __exports__;
-// }
+// window.jsu = __module__;

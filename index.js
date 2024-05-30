@@ -4,7 +4,7 @@ import path from "node:path";
 import fs from "node:fs";
 import { fileURLToPath } from 'node:url';
 import wav from './libs/wav.js';
-import jsutl from './libs/jsutl.js';
+import jsu from './libs/jsu.js';
 import ffmpeg from "fluent-ffmpeg";
 import jsmediatags from 'jsmediatags';
 
@@ -21,8 +21,6 @@ const PREVIEW_DURATION = 30;
 const ENABLE_BEAT_SPACING = true;
 const ENABLE_LESS_TOP_POSITION = true;
 const ENABLE_LESS_CENTER_POSITION = true;
-const ENABLE_LESS_DIAGONAL_DIRECTION = false;
-const ENABLE_LESS_HORIZONTAL_DIRECTION = false; // require set ENABLE_LESS_DIAGONAL_DIRECTION value to true.
 const DIFFICULTY_OPTIONS = {
   easy: {
     bufferSize: 0.5,
@@ -34,7 +32,7 @@ const DIFFICULTY_OPTIONS = {
     sliderSpawnRate: 0.5,
     beatSpacing: 0.25,
     noteSpacing: 1,
-    sliderRange: [2, 5],
+    sliderRange: [2, 6],
     noteConnectSpacing: 2,
     obstacleSpacing: 25,
     obstacleDisappearSpacing: 0.5,
@@ -50,7 +48,7 @@ const DIFFICULTY_OPTIONS = {
     sliderSpawnRate: 0.5,
     beatSpacing: 0.25,
     noteSpacing: 0.75,
-    sliderRange: [1.5, 5],
+    sliderRange: [1.75, 6],
     noteConnectSpacing: 2.25,
     obstacleSpacing: 20,
     obstacleDisappearSpacing: 0.5,
@@ -76,14 +74,14 @@ const DIFFICULTY_OPTIONS = {
     bufferSize: 0.4,
     minVolume: 0.1,
     energeThreshold: 1.5,
-    noteSpawnRates: [0.75, 0.5],
+    noteSpawnRates: [0.75, 0.375],
     bombSpawnRate: 0,
     obstacleSpawnRate: 0.04,
-    sliderSpawnRate: 0.4,
+    sliderSpawnRate: 0.6,
     beatSpacing: 0.25,
     noteSpacing: 0.25,
-    sliderRange: [1, 5],
-    noteConnectSpacing: 1,
+    sliderRange: [1.25, 5],
+    noteConnectSpacing: 1.5,
     obstacleSpacing: 12.5,
     obstacleDisappearSpacing: 0.5,
     bombDisappearSpacing: 0.5,
@@ -95,11 +93,11 @@ const DIFFICULTY_OPTIONS = {
     noteSpawnRates: [0.75, 0.5],
     bombSpawnRate: 0,
     obstacleSpawnRate: 0.05,
-    sliderSpawnRate: 0.4,
+    sliderSpawnRate: 0.7,
     beatSpacing: 0.25,
     noteSpacing: 0.25,
-    sliderRange: [1, 5],
-    noteConnectSpacing: 1,
+    sliderRange: [1.25, 5],
+    noteConnectSpacing: 1.5,
     obstacleSpacing: 10,
     obstacleDisappearSpacing: 0.5,
     bombDisappearSpacing: 0.5,
@@ -130,56 +128,116 @@ const NOTE_DIRECTIONS = [
   {d: 6}, {d: 1}, {d: 7},
 ];
 
-const LEFT_NOTE_FORMATS = [
-  // top
-  [0,0], [0,1],
-  [0,0], [0,1],
-  [1,0], [1,1], [1,2],
-  [2,2],
-  // [3,2],
-
-  // middle
-  [4,0], [4,3], [4,6],
-  [4,0], [4,3], [4,6],
-  [4,0], [4,3], [4,6],
-  [5,0], [5,1], [5,2], [5,3], [5,4], [5,5], [5,6], [5,7], [5,8],
-  [6,2], [6,5],
-  // [7,5],
-
-  // bottom
-  [8,6], [8,7],
-  [8,6], [8,7],
-  [8,6], [8,7],
-  [9,6], [9,7], [9,8],
-  [9,6], [9,7], [9,8],
-  [10,8],
-  // [11,8],
+// for connect left note
+const LEFT_POSITION_COUNT = [
+  3,2,1,
+  4,8,1,
+  3,2,1,
 ];
 
-const RIGHT_NOTE_FORMATS = [
+// for connected right note
+const RIGHT_POSITION_COUNT = [
+  1,2,3,
+  1,8,4,
+  1,2,3,
+];
+
+// for disconnected left note
+// [
+//   4,3,1,0,
+//   5,1,1,0,
+//   4,3,1,0,
+// ]
+const LEFT_NOTE_FORMATS = [
   // top
-  // [0,0], 
-  [1,0],
-  [2,0], [2,1], [2,2],
-  [3,1], [3,2],
-  [3,1], [3,2],
+  [0,0], [0,1], [0,3],
+  [0,0], [0,1], [0,3],
+  [0,0], [0,1], [0,3],
+  [0,0], [0,1], [0,3],
+
+  [1,1], [1,2], [1,5],
+  [1,1], [1,2], [1,5],
+  [1,1], [1,2], [1,5],
+
+  [2,1], [2,2], [2,5],
+
+  // [3,1], [3,2], [3,5],
 
   // middle
-  // [4,3],
-  [5,0], [5,3],
-  [6,0], [6,1], [6,2], [6,3], [6,4], [6,5], [6,6], [6,7], [6,8],
+  [4,0], [4,3], [4,6],
+  [4,0], [4,3], [4,6],
+  [4,0], [4,3], [4,6],
+  [4,0], [4,3], [4,6],
+  [4,0], [4,3], [4,6],
+
+  [5,2], [5,5], [5,8],
+
+  [6,2], [6,5], [6,8],
+
+  // [7,2], [7,5], [7,8],
+
+  // bottom
+  [8,3], [8,6], [8,7],
+  [8,3], [8,6], [8,7],
+  [8,3], [8,6], [8,7],
+  [8,3], [8,6], [8,7],
+
+  [9,5], [9,7], [9,8],
+  [9,5], [9,7], [9,8],
+  [9,5], [9,7], [9,8],
+
+  [10,5], [10,7], [10,8],
+
+  // [11,5], [11,7], [11,8],
+];
+
+// for disconnected right note
+// [
+//   0,1,3,4,
+//   0,1,1,5,
+//   0,1,3,4,
+// ]
+const RIGHT_NOTE_FORMATS = [
+  // top
+  // [0,0], [0,1], [0,3],
+
+  [1,0], [1,1], [1,3],
+
+  [2,0], [2,1], [2,3],
+  [2,0], [2,1], [2,3],
+  [2,0], [2,1], [2,3],
+
+  [3,1], [3,2], [3,5],
+  [3,1], [3,2], [3,5],
+  [3,1], [3,2], [3,5],
+  [3,1], [3,2], [3,5],
+
+  // middle
+  // [4,0], [4,3], [4,6],
+
+  [5,2], [5,5], [5,8],
+
+  [6,2], [6,5], [6,8],
+
+  [7,2], [7,5], [7,8],
+  [7,2], [7,5], [7,8],
   [7,2], [7,5], [7,8],
   [7,2], [7,5], [7,8],
   [7,2], [7,5], [7,8],
   
   // bottom
-  // [8,6],
-  [9,6],
-  [10,6], [10,7], [10,8],
-  [10,6], [10,7], [10,8],
-  [11,7], [11,8],
-  [11,7], [11,8],
-  [11,7], [11,8],
+  // [8,3], [8,6], [8,7],
+
+  [9,5], [9,7], [9,8],
+
+  [10,5], [10,7], [10,8],
+  [10,5], [10,7], [10,8],
+  [10,5], [10,7], [10,8],
+
+  [11,5], [11,7], [11,8],
+  [11,5], [11,7], [11,8],
+  [11,5], [11,7], [11,8],
+  [11,5], [11,7], [11,8],
 ];
 
 const OBSTACLE_FORMATS = [
@@ -226,8 +284,8 @@ function createInfo(songName, authorName, bpm) {
     '_previewDuration': PREVIEW_DURATION,
     '_songFilename': 'song.egg',
     '_coverImageFilename': 'cover.jpg',
+    "_allDirectionsEnvironmentName": "GlassDesertEnvironment",
     '_environmentName': 'DefaultEnvironment',
-    // "_allDirectionsEnvironmentName": "DefaultEnvironment",
     '_customData': {},
     '_difficultyBeatmapSets': []
   }
@@ -243,27 +301,27 @@ function addDiff(info, difficulty, offset = 0, characteristicName = "Standard") 
     case "easy":
       _difficulty = "Easy";
       _difficultyRank = 1;
-      _noteJumpMovementSpeed = jsutl.choose([7,8]);
+      _noteJumpMovementSpeed = jsu.choose([7,8]);
       break;
     case "normal":
       _difficulty = "Normal";
       _difficultyRank = 3;
-      _noteJumpMovementSpeed = jsutl.choose([9,10]);
+      _noteJumpMovementSpeed = jsu.choose([9,10]);
       break;
     case "hard":
       _difficulty = "Hard";
       _difficultyRank = 5;
-      _noteJumpMovementSpeed = jsutl.choose([11,12]);
+      _noteJumpMovementSpeed = jsu.choose([11,12]);
       break;
     case "expert":
       _difficulty = "Expert";
       _difficultyRank = 7;
-      _noteJumpMovementSpeed = jsutl.choose([13,14]);
+      _noteJumpMovementSpeed = jsu.choose([13,14]);
       break;
     case "expertPlus":
       _difficulty = "ExpertPlus";
       _difficultyRank = 9;
-      _noteJumpMovementSpeed = jsutl.choose([15,16]);
+      _noteJumpMovementSpeed = jsu.choose([15,16]);
       break;
   }
 
@@ -352,24 +410,6 @@ function getObstaclePositionIndexes(o) {
   return positions;
 }
 
-function shuffleArray(array) {
-  let currentIndex = array.length;
-
-  // While there remain elements to shuffle...
-  while (currentIndex != 0) {
-
-    // Pick a remaining element...
-    let randomIndex = Math.floor(Math.random() * currentIndex);
-    currentIndex--;
-
-    // And swap it with the current element.
-    [array[currentIndex], array[randomIndex]] = [
-      array[randomIndex], array[currentIndex]];
-  }
-
-  return array;
-}
-
 // const POSITIONS = [
 //   0,1,2,3,
 //   4,5,6,7,
@@ -389,6 +429,18 @@ function chkDupeNotes(l, r) {
   const ld = getDirectionIndex(l.d);
   const rp = getPotisionIndex(r.x, r.y);
   const rd = getDirectionIndex(r.d);
+  if (lp === -1) {
+    throw new Error("Position not found.");
+  }
+  if (ld === -1) {
+    throw new Error("Direction not found.");
+  }
+  if (rp === -1) {
+    throw new Error("Position not found.");
+  }
+  if (rd === -1) {
+    throw new Error("Direction not found.");
+  }
   // same position
   if (lp === rp) {
     return true;
@@ -407,19 +459,23 @@ function chkDupeNotes(l, r) {
     }
     if (lp < rp) {
       // l: left, r: right
-      if (ld === 2 || ld === 8) {
-        return true;
-      }
-      if (rd === 0 || rd === 6) {
-        return true;
+      if (ld !== rd) {
+        if (ld === 0 || ld === 2 || ld === 6 || ld === 8) {
+          return true;
+        }
+        if (rd === 0 || rd === 2 || rd === 6 || rd === 8) {
+          return true;
+        }
       }
     } else if (lp > rp) {
       // l: right, r: left
-      if (ld === 0 || ld === 6) {
-        return true;
-      }
-      if (rd === 2 || rd === 8) {
-        return true;
+      if (ld !== rd) {
+        if (ld === 0 || ld === 2 || ld === 6 || ld === 8) {
+          return true;
+        }
+        if (rd === 0 || rd === 2 || rd === 6 || rd === 8) {
+          return true;
+        }
       }
     }
   }
@@ -433,19 +489,23 @@ function chkDupeNotes(l, r) {
     }
     if (lp < rp) {
       // l: top, r: bottom
-      if (ld === 6 || ld === 8) {
-        return true;
-      }
-      if (rd === 0 || rd === 2) {
-        return true;
+      if (ld !== rd) {
+        if (ld === 0 || ld === 2 || ld === 6 || ld === 8) {
+          return true;
+        }
+        if (rd === 0 || rd === 2 || rd === 6 || rd === 8) {
+          return true;
+        }
       }
     } else if (lp > rp) {
       // l: bottom, r: top
-      if (ld === 0 || ld === 2) {
-        return true;
-      }
-      if (rd === 6 || rd === 8) {
-        return true;
+      if (ld !== rd) {
+        if (ld === 0 || ld === 2 || ld === 6 || ld === 8) {
+          return true;
+        }
+        if (rd === 0 || rd === 2 || rd === 6 || rd === 8) {
+          return true;
+        }
       }
     }
   }
@@ -493,7 +553,6 @@ function chkDupeNotes(l, r) {
       }
     }
   }
-
   return false;
 }
 
@@ -545,44 +604,30 @@ function createNoteByIndex(beat, type, positionIndex, directionIndex) {
 //   3,4,5,
 //   6,7,8,
 // ];
-function getNextDirectionIndex(d) {
-  if (ENABLE_LESS_DIAGONAL_DIRECTION) {
-    if (ENABLE_LESS_HORIZONTAL_DIRECTION) {
-      switch(d) {
-        case 0: return jsutl.choose([8,5,7,7,7,7,7]);
-        case 1: return jsutl.choose([7,7,7,7,7,6,8]);
-        case 2: return jsutl.choose([6,3,7,7,7,7,7]);
-        case 3: return jsutl.choose([5,2,8]);
-        case 4: return jsutl.choose([4,4,4,4,4,4,4,4,1,3,5,7]);
-        case 5: return jsutl.choose([3,0,6]);
-        case 6: return jsutl.choose([2,1,1,1,1,1,5]);
-        case 7: return jsutl.choose([1,1,1,1,1,0,2]);
-        case 8: return jsutl.choose([0,1,1,1,1,1,3]);
-      }
-    } else {
-      switch(d) {
-        case 0: return jsutl.choose([8,5,5,5,7,7,7]);
-        case 1: return jsutl.choose([7,7,7,7,7,6,8]);
-        case 2: return jsutl.choose([6,3,3,3,7,7,7]);
-        case 3: return jsutl.choose([5,5,5,5,5,2,8]);
-        case 4: return jsutl.choose([4,4,4,4,4,4,4,4,1,3,5,7]);
-        case 5: return jsutl.choose([3,3,3,3,3,0,6]);
-        case 6: return jsutl.choose([2,1,1,1,5,5,5]);
-        case 7: return jsutl.choose([1,1,1,1,1,0,2]);
-        case 8: return jsutl.choose([0,1,1,1,3,3,3]);
-      }
+function getNextDirectionIndex(d, isSamePosition) {
+  if (isSamePosition) {
+    switch(d) {
+      case 0: return jsu.choose([8]);
+      case 1: return jsu.choose([7]);
+      case 2: return jsu.choose([6]);
+      case 3: return jsu.choose([5]);
+      case 4: return jsu.choose([4]); // any
+      case 5: return jsu.choose([3]);
+      case 6: return jsu.choose([2]);
+      case 7: return jsu.choose([1]);
+      case 8: return jsu.choose([0]);
     }
   } else {
     switch(d) {
-      case 0: return jsutl.choose([8,8,8,8,5,7]);
-      case 1: return jsutl.choose([7,7,7,7,6,8]);
-      case 2: return jsutl.choose([6,6,6,6,3,7]);
-      case 3: return jsutl.choose([5,5,5,5,2,8]);
-      case 4: return jsutl.choose([4,4,4,4,4,4,4,4,1,3,5,7]);
-      case 5: return jsutl.choose([3,3,3,3,0,6]);
-      case 6: return jsutl.choose([2,2,2,2,1,5]);
-      case 7: return jsutl.choose([1,1,1,1,0,2]);
-      case 8: return jsutl.choose([0,0,0,0,1,3]);
+      case 0: return jsu.choose([8,8,8,5,7]);
+      case 1: return jsu.choose([7,7,7,6,8]);
+      case 2: return jsu.choose([6,6,6,3,7]);
+      case 3: return jsu.choose([5,5,5,2,8]);
+      case 4: return jsu.choose([4,4,4,4,4]); // any
+      case 5: return jsu.choose([3,3,3,0,6]);
+      case 6: return jsu.choose([2,2,2,1,5]);
+      case 7: return jsu.choose([1,1,1,0,2]);
+      case 8: return jsu.choose([0,0,0,1,3]);
     }
   }
 }
@@ -641,56 +686,71 @@ function getPrevObstacle(obstacles) {
 }
 
 // [
-//   2,1,   1, x,
-//   3,50%, 1, x,
-//   4,3,   2, x,
+//   3,2,   1, x,
+//   4,50%, 1, x,
+//   3,2,   1, x,
 // ]
 function getNextLeftPositionIndex(p) {
   let positions = [];
 
   // left top
   if (isDiagonalPosition(p, p-5)) {
-    positions.push(p-5,p-5);
+    for (let i = 0; i < LEFT_POSITION_COUNT[0]; i++) {
+      positions.push(p-5);
+    }
   }
   // top
   if (isSameCol(p, p-4)) {
-    positions.push(p-4);
+    for (let i = 0; i < LEFT_POSITION_COUNT[1]; i++) {
+      positions.push(p-4);
+    }
   }
   // right top
   if (isDiagonalPosition(p, p-3)) {
-    positions.push(p-3);
+    for (let i = 0; i < LEFT_POSITION_COUNT[2]; i++) {
+      positions.push(p-3);
+    }
   }
   // left
   if (isSameRow(p, p-1)) {
-    positions.push(p-1,p-1,p-1);
+    for (let i = 0; i < LEFT_POSITION_COUNT[3]; i++) {
+      positions.push(p-1);
+    }
+  }
+  // center
+  for (let i = 0; i < LEFT_POSITION_COUNT[4]; i++) {
+    positions.push(p);
   }
   // right
   if (isSameRow(p, p+1)) {
-    positions.push(p+1);
+    for (let i = 0; i < LEFT_POSITION_COUNT[5]; i++) {
+      positions.push(p+1);
+    }
   }
   // left bottom
   if (isDiagonalPosition(p, p+3)) {
-    positions.push(p+3,p+3,p+3,p+3);
+    for (let i = 0; i < LEFT_POSITION_COUNT[6]; i++) {
+      positions.push(p+3);
+    }
   }
   // bottom
   if (isSameCol(p, p+4)) {
-    positions.push(p+4,p+4,p+4);
+    for (let i = 0; i < LEFT_POSITION_COUNT[7]; i++) {
+      positions.push(p+4);
+    }
   }
   // right bottom
   if (isDiagonalPosition(p, p+5)) {
-    positions.push(p+5,p+5);
-  }
-
-  let len = positions.length;
-  for (let i = 0; i < len; i++) {
-    positions.push(p);
+    for (let i = 0; i < LEFT_POSITION_COUNT[8]; i++) {
+      positions.push(p+5);
+    }
   }
 
   positions = positions.filter(function(pos) {
     return pos >= 0 && pos <= 11;
   });
 
-  positions = shuffleArray(positions);
+  positions = jsu.shuffle(positions);
 
   if (ENABLE_LESS_CENTER_POSITION) {
     let max = 1;
@@ -718,60 +778,71 @@ function getNextLeftPositionIndex(p) {
     }
   }
 
-  return jsutl.choose(positions);
+  return jsu.choose(positions);
 }
 
-// [
-//   x, 1,1,   2,
-//   x, 1,50% ,3,
-//   x, 2,3,   4,
-// ]
+
 function getNextRightPositionIndex(p) {
   let positions = [];
 
   // left top
   if (isDiagonalPosition(p, p-5)) {
-    positions.push(p-5);
+    for (let i = 0; i < RIGHT_POSITION_COUNT[0]; i++) {
+      positions.push(p-5);
+    }
   }
   // top
   if (isSameCol(p, p-4)) {
-    positions.push(p-4);
+    for (let i = 0; i < RIGHT_POSITION_COUNT[1]; i++) {
+      positions.push(p-4);
+    }
   }
   // right top
   if (isDiagonalPosition(p, p-3)) {
-    positions.push(p-3,p-3);
+    for (let i = 0; i < RIGHT_POSITION_COUNT[2]; i++) {
+      positions.push(p-3);
+    }
   }
   // left
   if (isSameRow(p, p-1)) {
-    positions.push(p-1);
+    for (let i = 0; i < RIGHT_POSITION_COUNT[3]; i++) {
+      positions.push(p-1);
+    }
+  }
+  // center
+  for (let i = 0; i < RIGHT_POSITION_COUNT[4]; i++) {
+    positions.push(p);
   }
   // right
   if (isSameRow(p, p+1)) {
-    positions.push(p+1,p+1,p+1);
+    for (let i = 0; i < RIGHT_POSITION_COUNT[5]; i++) {
+      positions.push(p+1);
+    }
   }
   // left bottom
   if (isDiagonalPosition(p, p+3)) {
-    positions.push(p+3,p+3);
+    for (let i = 0; i < RIGHT_POSITION_COUNT[6]; i++) {
+      positions.push(p+3);
+    }
   }
   // bottom
   if (isSameCol(p, p+4)) {
-    positions.push(p+4,p+4,p+4);
+    for (let i = 0; i < RIGHT_POSITION_COUNT[7]; i++) {
+      positions.push(p+4);
+    }
   }
   // right bottom
   if (isDiagonalPosition(p, p+5)) {
-    positions.push(p+5,p+5,p+5,p+5);
-  }
-  
-  let len = positions.length;
-  for (let i = 0; i < len; i++) {
-    positions.push(p);
+    for (let i = 0; i < RIGHT_POSITION_COUNT[8]; i++) {
+      positions.push(p+5);
+    }
   }
 
   positions = positions.filter(function(pos) {
     return pos >= 0 && pos <= 11;
   });
 
-  positions = shuffleArray(positions);
+  positions = jsu.shuffle(positions);
 
   if (ENABLE_LESS_CENTER_POSITION) {
     let max = 1;
@@ -799,16 +870,17 @@ function getNextRightPositionIndex(p) {
     }
   }
 
-  return jsutl.choose(positions);
+  return jsu.choose(positions);
 }
 
 function createNextLeftNote(beat, prevNote) {
   let positionIndex, directionIndex;
   if (!prevNote) {
-    [positionIndex, directionIndex] = jsutl.choose(LEFT_NOTE_FORMATS);
+    [positionIndex, directionIndex] = jsu.choose(LEFT_NOTE_FORMATS);
   } else {
-    positionIndex = getNextLeftPositionIndex(getPotisionIndex(prevNote.x, prevNote.y));
-    directionIndex = getNextDirectionIndex(getDirectionIndex(prevNote.d));
+    const prevPositionIndex = getPotisionIndex(prevNote.x, prevNote.y);
+    positionIndex = getNextLeftPositionIndex(prevPositionIndex);
+    directionIndex = getNextDirectionIndex(getDirectionIndex(prevNote.d), positionIndex === prevPositionIndex);
   }
   return createNoteByIndex(beat, 0, positionIndex, directionIndex);
 }
@@ -816,16 +888,17 @@ function createNextLeftNote(beat, prevNote) {
 function createNextRightNote(beat, prevNote) {
   let positionIndex, directionIndex;
   if (!prevNote) {
-    [positionIndex, directionIndex] = jsutl.choose(RIGHT_NOTE_FORMATS);
+    [positionIndex, directionIndex] = jsu.choose(RIGHT_NOTE_FORMATS);
   } else {
-    positionIndex = getNextRightPositionIndex(getPotisionIndex(prevNote.x, prevNote.y));
-    directionIndex = getNextDirectionIndex(getDirectionIndex(prevNote.d));
+    const prevPositionIndex = getPotisionIndex(prevNote.x, prevNote.y);
+    positionIndex = getNextRightPositionIndex(prevPositionIndex);
+    directionIndex = getNextDirectionIndex(getDirectionIndex(prevNote.d), positionIndex === prevPositionIndex);
   }
   return createNoteByIndex(beat, 1, positionIndex, directionIndex);
 }
 
 function createVerticalObstacle(beat) {
-  return Object.assign({b: beat}, jsutl.choose(OBSTACLE_FORMATS));
+  return Object.assign({b: beat}, jsu.choose(OBSTACLE_FORMATS));
 }
 
 function createSliderNote(headNote, tailNote) {
@@ -884,11 +957,11 @@ function createDummyNote(beat) {
   const angles = [0];
   return {
     'b': beat,
-    'x': jsutl.choose(cols),
-    'y': jsutl.choose(rows),
-    'c': jsutl.choose(types),
-    'd': jsutl.choose(directions),
-    'a': jsutl.choose(angles),
+    'x': jsu.choose(cols),
+    'y': jsu.choose(rows),
+    'c': jsu.choose(types),
+    'd': jsu.choose(directions),
+    'a': jsu.choose(angles),
   }
 }
 
@@ -913,8 +986,8 @@ function createBombNote(beat, options) {
 
   return {
     'b': beat,
-    'x': jsutl.choose(cols),
-    'y': jsutl.choose(rows),
+    'x': jsu.choose(cols),
+    'y': jsu.choose(rows),
   }
 }
 
@@ -944,9 +1017,9 @@ function createObstacle(beat, options) {
 
   return {
     'b': beat,
-    "d": jsutl.choose(duration), // Duration
-    'x': jsutl.choose(cols),
-    'y': jsutl.choose(rows),
+    "d": jsu.choose(duration), // Duration
+    'x': jsu.choose(cols),
+    'y': jsu.choose(rows),
     "w": 1, // Width
     "h": 5, // Height
   }
@@ -1165,6 +1238,7 @@ async function generate(srcPath) {
     let countLeftNotes = 0;
     let countRightNotes = 0;
     let countLargeEnergies = 0;
+    let countPassedNotes = 0;
     let countPositions = [
       0,0,0,0,
       0,0,0,0,
@@ -1193,8 +1267,9 @@ async function generate(srcPath) {
       let currObstacle = isObstacleExists ? prevObstacle : null;
       let currLeftNote;
       let currRightNote;
-      let countErrors = 0;
+      let countDupe = 0;
 
+      // count large energe beat
       if (isLargeEnerge) {
         countLargeEnergies += 1;
       }
@@ -1221,14 +1296,14 @@ async function generate(srcPath) {
           createLeftNote = Math.random() < noteSpawnRates[0] + (isLargeEnerge ? 0.25 : 0);
         }
         if (isRightNoteCreatable && !createRightNote) {
-          createRightNote = Math.random() < noteSpawnRates[1];
+          createRightNote = Math.random() < noteSpawnRates[1] + (isLargeEnerge ? 0.125 : 0);
         }
       } else {
         if (isRightNoteCreatable && !createRightNote) {
           createRightNote = Math.random() < noteSpawnRates[0] + (isLargeEnerge ? 0.25 : 0);
         }
         if (isLeftNoteCreatable && !createLeftNote) {
-          createLeftNote = Math.random() < noteSpawnRates[1];
+          createLeftNote = Math.random() < noteSpawnRates[1] + (isLargeEnerge ? 0.125 : 0);
         }
       }
 
@@ -1241,15 +1316,16 @@ async function generate(srcPath) {
         // create left note
         if (createLeftNote) {
           currLeftNote = createNextLeftNote(beat, isLeftConnected ? prevLeftNote : null);
-          countErrors = 0;
+          countDupe = 0;
           while(
             chkOverlappedObstacle(currObstacle, currLeftNote) || 
-            chkSamePosition(currLeftNote, prevRightNote)
+            chkSamePosition(prevRightNote, currLeftNote)
           ) {
             currLeftNote = createNextLeftNote(beat, isLeftConnected ? prevLeftNote : null);
-            countErrors += 1;
-            if (countErrors > 390) {
+            countDupe += 1;
+            if (countDupe > 390) {
               currLeftNote = null;
+              countPassedNotes += 1;
               break;
             }
           }
@@ -1257,16 +1333,17 @@ async function generate(srcPath) {
         // create right note
         if (createRightNote) {
           currRightNote = createNextRightNote(beat, isRightConnected ? prevRightNote : null);
-          countErrors = 0;
+          countDupe = 0;
           while(
             chkOverlappedObstacle(currObstacle, currRightNote) || 
-            chkSamePosition(currRightNote, prevLeftNote) || 
+            chkSamePosition(prevLeftNote, currRightNote) || 
             chkDupeNotes(currLeftNote, currRightNote)
           ) {
             currRightNote = createNextRightNote(beat, isRightConnected ? prevRightNote : null);
-            countErrors += 1;
-            if (countErrors > 390) {
+            countDupe += 1;
+            if (countDupe > 390) {
               currRightNote = null;
+              countPassedNotes += 1;
               break;
             }
           }
@@ -1275,15 +1352,16 @@ async function generate(srcPath) {
         // create right note
         if (createRightNote) {
           currRightNote = createNextRightNote(beat, isRightConnected ? prevRightNote : null);
-          countErrors = 0;
+          countDupe = 0;
           while(
             chkOverlappedObstacle(currObstacle, currRightNote) || 
-            chkSamePosition(currRightNote, prevLeftNote)
+            chkSamePosition(prevLeftNote, currRightNote)
           ) {
             currRightNote = createNextRightNote(beat, isRightConnected ? prevRightNote : null);
-            countErrors += 1;
-            if (countErrors > 390) {
+            countDupe += 1;
+            if (countDupe > 390) {
               currRightNote = null;
+              countPassedNotes += 1;
               break;
             }
           }
@@ -1291,16 +1369,17 @@ async function generate(srcPath) {
         // create left note
         if (createLeftNote) {
           currLeftNote = createNextLeftNote(beat, isLeftConnected ? prevLeftNote : null);
-          countErrors = 0;
+          countDupe = 0;
           while(
             chkOverlappedObstacle(currObstacle, currLeftNote) || 
-            chkSamePosition(currLeftNote, prevRightNote) || 
+            chkSamePosition(prevRightNote, currLeftNote) || 
             chkDupeNotes(currLeftNote, currRightNote)
           ) {
             currLeftNote = createNextLeftNote(beat, isLeftConnected ? prevLeftNote : null);
-            countErrors += 1;
-            if (countErrors > 390) {
+            countDupe += 1;
+            if (countDupe > 390) {
               currLeftNote = null;
+              countPassedNotes += 1;
               break;
             }
           }
@@ -1326,14 +1405,12 @@ async function generate(srcPath) {
 
     // link left notes (slider)
     for (let i = 0; i < colorNotes.length; i++) {
-      let a = colorNotes[i];
-      let b;
-
-      // right note
-      if (a.c !== 0) {
+      if (colorNotes[i].c !== 0) {
         continue;
       }
 
+      let a = colorNotes[i];
+      let b;
       for (let j = i + 1; j < colorNotes.length; j++) {
         if (colorNotes[j].c === 0) {
           if (chkTailNoteDirection(a.d, colorNotes[j].d)) {
@@ -1358,14 +1435,12 @@ async function generate(srcPath) {
 
     // link right notes (slider)
     for (let i = 0; i < colorNotes.length; i++) {
-      let a = colorNotes[i];
-      let b;
-
-      // right note
-      if (a.c !== 1) {
+      if (colorNotes[i].c !== 1) {
         continue;
       }
 
+      let a = colorNotes[i];
+      let b;
       for (let j = i + 1; j < colorNotes.length; j++) {
         if (colorNotes[j].c === 1) {
           if (chkTailNoteDirection(a.d, colorNotes[j].d)) {
@@ -1402,6 +1477,7 @@ async function generate(srcPath) {
     console.log(`> ${obstacles.length} obstacles.`);
     console.log(`> ${sliders.length} sliders.`);
     console.log(`> ${burstSliders.length} burst sliders.`);
+    console.log(`> ${countPassedNotes} notes passed. (invalid position, invalid direction)`);
     console.log(``);
 
     // debug details
