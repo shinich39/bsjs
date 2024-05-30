@@ -24,6 +24,7 @@ const BACKGROUND_SPACING = 5;
 const ENABLE_BEAT_SPACING = true;
 const ENABLE_LESS_TOP_POSITION = false;
 const ENABLE_LESS_CENTER_POSITION = true;
+const ENABLE_LESS_CROSS_POSITION = true;
 const DIFFICULTY_OPTIONS = {
   easy: {
     bufferSize: 0.5,
@@ -491,15 +492,15 @@ function createLevel() {
   }
 }
 
-function getPotisionIndex(x, y) {
+function getPotisionIndex(note) {
   return NOTE_POSITIONS.findIndex(function(item) {
-    return item.x === x && item.y === y;
+    return item.x === note.x && item.y === note.y;
   });
 }
 
-function getDirectionIndex(d) {
+function getDirectionIndex(note) {
   return NOTE_DIRECTIONS.findIndex(function(item) {
-    return item.d === d;
+    return item.d === note.d;
   });
 }
 
@@ -508,7 +509,7 @@ function getObstaclePositionIndexes(o) {
   let positions = [];
   for (let i = 0; i < o.w; i++) {
     for (let j = 2; j >= 0; j--) {
-      const p = getPotisionIndex(o.x + i, j);
+      const p = getPotisionIndex({ x: o.x + i, y: j });
       positions.push(p);
     }
   }
@@ -530,10 +531,10 @@ function chkDupeNotes(l, r) {
   if (!l || !r) {
     return false;
   } 
-  const lp = getPotisionIndex(l.x, l.y);
-  const ld = getDirectionIndex(l.d);
-  const rp = getPotisionIndex(r.x, r.y);
-  const rd = getDirectionIndex(r.d);
+  const lp = getPotisionIndex(l);
+  const ld = getDirectionIndex(l);
+  const rp = getPotisionIndex(r);
+  const rd = getDirectionIndex(r);
   if (lp === -1) {
     throw new Error("Position not found.");
   }
@@ -665,8 +666,8 @@ function chkSamePosition(a, b) {
   if (!a || !b) {
     return false;
   }
-  const ap = getPotisionIndex(a.x, a.y);
-  const bp = getPotisionIndex(b.x, b.y);
+  const ap = getPotisionIndex(a);
+  const bp = getPotisionIndex(b);
   if (ap === -1) {
     throw new Error("Position not found.");
   }
@@ -681,7 +682,7 @@ function chkOverlappedObstacle(o, n) {
     return false;
   }
   const op = getObstaclePositionIndexes(o);
-  const np = getPotisionIndex(n.x, n.y);
+  const np = getPotisionIndex(n);
   if (op.length < 1) {
     throw new Error("Position not found.");
   }
@@ -696,9 +697,9 @@ function chkOverlappedObstacle(o, n) {
 //   3,4,5,
 //   6,7,8,
 // ];
-function chkTailNoteDirection(headDirection, tailDirection) {
-  const hd = getDirectionIndex(headDirection);
-  const td = getDirectionIndex(tailDirection);
+function chkTailNoteDirection(headNote, tailNote) {
+  const hd = getDirectionIndex(headNote);
+  const td = getDirectionIndex(tailNote);
   return SLIDER_TAIL_DIRECTION_CASES[hd].indexOf(td) > -1;
 }
 
@@ -765,64 +766,64 @@ function getPrevObstacle(obstacles) {
 //   4,50%, 1, x,
 //   3,2,   1, x,
 // ]
-function getNextLeftPositionIndex(p) {
+function getNextLeftPositionIndex(lp, rp) {
   let positions = [];
 
   // left top
-  if (isDiagonalPosition(p, p-5)) {
+  if (isDiagonalPosition(lp, lp-5)) {
     for (let i = 0; i < LEFT_POSITION_COUNT[0]; i++) {
-      positions.push(p-5);
+      positions.push(lp-5);
     }
   }
   // top
-  if (isSameCol(p, p-4)) {
+  if (isSameCol(lp, lp-4)) {
     for (let i = 0; i < LEFT_POSITION_COUNT[1]; i++) {
-      positions.push(p-4);
+      positions.push(lp-4);
     }
   }
   // right top
-  if (isDiagonalPosition(p, p-3)) {
+  if (isDiagonalPosition(lp, lp-3)) {
     for (let i = 0; i < LEFT_POSITION_COUNT[2]; i++) {
-      positions.push(p-3);
+      positions.push(lp-3);
     }
   }
   // left
-  if (isSameRow(p, p-1)) {
+  if (isSameRow(lp, lp-1)) {
     for (let i = 0; i < LEFT_POSITION_COUNT[3]; i++) {
-      positions.push(p-1);
+      positions.push(lp-1);
     }
   }
   // center
   for (let i = 0; i < LEFT_POSITION_COUNT[4]; i++) {
-    positions.push(p);
+    positions.push(lp);
   }
   // right
-  if (isSameRow(p, p+1)) {
+  if (isSameRow(lp, lp+1)) {
     for (let i = 0; i < LEFT_POSITION_COUNT[5]; i++) {
-      positions.push(p+1);
+      positions.push(lp+1);
     }
   }
   // left bottom
-  if (isDiagonalPosition(p, p+3)) {
+  if (isDiagonalPosition(lp, lp+3)) {
     for (let i = 0; i < LEFT_POSITION_COUNT[6]; i++) {
-      positions.push(p+3);
+      positions.push(lp+3);
     }
   }
   // bottom
-  if (isSameCol(p, p+4)) {
+  if (isSameCol(lp, lp+4)) {
     for (let i = 0; i < LEFT_POSITION_COUNT[7]; i++) {
-      positions.push(p+4);
+      positions.push(lp+4);
     }
   }
   // right bottom
-  if (isDiagonalPosition(p, p+5)) {
+  if (isDiagonalPosition(lp, lp+5)) {
     for (let i = 0; i < LEFT_POSITION_COUNT[8]; i++) {
-      positions.push(p+5);
+      positions.push(lp+5);
     }
   }
 
-  positions = positions.filter(function(pos) {
-    return POSITIONS.indexOf(pos) > -1;
+  positions = positions.filter(function(p) {
+    return POSITIONS.indexOf(p) > -1;
   });
 
   positions = jsu.shuffle(positions);
@@ -855,6 +856,19 @@ function getNextLeftPositionIndex(p) {
     let max = 1;
     for (let i = positions.length - 1; i >= 0; i--) {
       if (getRow(positions[i]) === 0) {
+        if (max < 1) {
+          positions.splice(i, 1);
+        } else {
+          max--;
+        }
+      }
+    }
+  }
+
+  if (ENABLE_LESS_CROSS_POSITION && rp > -1) {
+    let max = 1;
+    for (let i = positions.length - 1; i >= 0; i--) {
+      if (getCol(positions[i]) < getCol(rp)) {
         if (max < 1) {
           positions.splice(i, 1);
         } else {
@@ -867,64 +881,64 @@ function getNextLeftPositionIndex(p) {
   return jsu.choose(positions);
 }
 
-function getNextRightPositionIndex(p) {
+function getNextRightPositionIndex(rp, lp) {
   let positions = [];
 
   // left top
-  if (isDiagonalPosition(p, p-5)) {
+  if (isDiagonalPosition(rp, rp-5)) {
     for (let i = 0; i < RIGHT_POSITION_COUNT[0]; i++) {
-      positions.push(p-5);
+      positions.push(rp-5);
     }
   }
   // top
-  if (isSameCol(p, p-4)) {
+  if (isSameCol(rp, rp-4)) {
     for (let i = 0; i < RIGHT_POSITION_COUNT[1]; i++) {
-      positions.push(p-4);
+      positions.push(rp-4);
     }
   }
   // right top
-  if (isDiagonalPosition(p, p-3)) {
+  if (isDiagonalPosition(rp, rp-3)) {
     for (let i = 0; i < RIGHT_POSITION_COUNT[2]; i++) {
-      positions.push(p-3);
+      positions.push(rp-3);
     }
   }
   // left
-  if (isSameRow(p, p-1)) {
+  if (isSameRow(rp, rp-1)) {
     for (let i = 0; i < RIGHT_POSITION_COUNT[3]; i++) {
-      positions.push(p-1);
+      positions.push(rp-1);
     }
   }
   // center
   for (let i = 0; i < RIGHT_POSITION_COUNT[4]; i++) {
-    positions.push(p);
+    positions.push(rp);
   }
   // right
-  if (isSameRow(p, p+1)) {
+  if (isSameRow(rp, rp+1)) {
     for (let i = 0; i < RIGHT_POSITION_COUNT[5]; i++) {
-      positions.push(p+1);
+      positions.push(rp+1);
     }
   }
   // left bottom
-  if (isDiagonalPosition(p, p+3)) {
+  if (isDiagonalPosition(rp, rp+3)) {
     for (let i = 0; i < RIGHT_POSITION_COUNT[6]; i++) {
-      positions.push(p+3);
+      positions.push(rp+3);
     }
   }
   // bottom
-  if (isSameCol(p, p+4)) {
+  if (isSameCol(rp, rp+4)) {
     for (let i = 0; i < RIGHT_POSITION_COUNT[7]; i++) {
-      positions.push(p+4);
+      positions.push(rp+4);
     }
   }
   // right bottom
-  if (isDiagonalPosition(p, p+5)) {
+  if (isDiagonalPosition(rp, rp+5)) {
     for (let i = 0; i < RIGHT_POSITION_COUNT[8]; i++) {
-      positions.push(p+5);
+      positions.push(rp+5);
     }
   }
 
-  positions = positions.filter(function(pos) {
-    return POSITIONS.indexOf(pos) > -1;
+  positions = positions.filter(function(p) {
+    return POSITIONS.indexOf(p) > -1;
   });
 
   positions = jsu.shuffle(positions);
@@ -957,6 +971,19 @@ function getNextRightPositionIndex(p) {
     let max = 1;
     for (let i = positions.length - 1; i >= 0; i--) {
       if (getRow(positions[i]) === 0) {
+        if (max < 1) {
+          positions.splice(i, 1);
+        } else {
+          max--;
+        }
+      }
+    }
+  }
+
+  if (ENABLE_LESS_CROSS_POSITION && lp > -1) {
+    let max = 1;
+    for (let i = positions.length - 1; i >= 0; i--) {
+      if (getCol(positions[i]) < getCol(lp)) {
         if (max < 1) {
           positions.splice(i, 1);
         } else {
@@ -972,14 +999,18 @@ function getNextRightPositionIndex(p) {
 function createNextLeftNote(beat, prevLeftNote, currRightNote) {
   let positionIndex, directionIndex;
   if (!prevLeftNote) {
-    [positionIndex, directionIndex] = jsu.choose(LEFT_NOTE_FORMATS);
+    if (ENABLE_LESS_CROSS_POSITION && currRightNote) {
+      [positionIndex, directionIndex] = jsu.choose(LEFT_NOTE_FORMATS.slice(0).filter(e => getCol(e[0]) <= getCol(getPotisionIndex(currRightNote))));
+    } else {
+      [positionIndex, directionIndex] = jsu.choose(LEFT_NOTE_FORMATS);
+    }
     if (currRightNote) {
-      directionIndex = jsu.choose(NEW_DIRECTION_CASES[getDirectionIndex(currRightNote.d)]);
+      directionIndex = jsu.choose(NEW_DIRECTION_CASES[getDirectionIndex(currRightNote)]);
     }
   } else {
-    const prevPositionIndex = getPotisionIndex(prevLeftNote.x, prevLeftNote.y);
-    positionIndex = getNextLeftPositionIndex(prevPositionIndex);
-    directionIndex = getNextDirectionIndex(getDirectionIndex(prevLeftNote.d), positionIndex === prevPositionIndex);
+    const prevPositionIndex = getPotisionIndex(prevLeftNote);
+    positionIndex = getNextLeftPositionIndex(prevPositionIndex, currRightNote ? getPotisionIndex(currRightNote) : -1);
+    directionIndex = getNextDirectionIndex(getDirectionIndex(prevLeftNote), positionIndex === prevPositionIndex);
   }
   return createNoteByIndex(beat, 0, positionIndex, directionIndex);
 }
@@ -987,14 +1018,18 @@ function createNextLeftNote(beat, prevLeftNote, currRightNote) {
 function createNextRightNote(beat, prevRightNote, currLeftNote) {
   let positionIndex, directionIndex;
   if (!prevRightNote) {
-    [positionIndex, directionIndex] = jsu.choose(RIGHT_NOTE_FORMATS);
+    if (ENABLE_LESS_CROSS_POSITION && currLeftNote) {
+      [positionIndex, directionIndex] = jsu.choose(RIGHT_NOTE_FORMATS.slice(0).filter(e => getCol(e[0]) >= getCol(getPotisionIndex(currLeftNote))));
+    } else {
+      [positionIndex, directionIndex] = jsu.choose(RIGHT_NOTE_FORMATS);
+    }
     if (currLeftNote) {
-      directionIndex = jsu.choose(NEW_DIRECTION_CASES[getDirectionIndex(currLeftNote.d)]);
+      directionIndex = jsu.choose(NEW_DIRECTION_CASES[getDirectionIndex(currLeftNote)]);
     }
   } else {
-    const prevPositionIndex = getPotisionIndex(prevRightNote.x, prevRightNote.y);
-    positionIndex = getNextRightPositionIndex(prevPositionIndex);
-    directionIndex = getNextDirectionIndex(getDirectionIndex(prevRightNote.d), positionIndex === prevPositionIndex);
+    const prevPositionIndex = getPotisionIndex(prevRightNote);
+    positionIndex = getNextRightPositionIndex(prevPositionIndex, currLeftNote ? getPotisionIndex(currLeftNote) : -1);
+    directionIndex = getNextDirectionIndex(getDirectionIndex(prevRightNote), positionIndex === prevPositionIndex);
   }
   return createNoteByIndex(beat, 1, positionIndex, directionIndex);
 }
@@ -1566,8 +1601,8 @@ async function generate(srcPath) {
       if (currLeftNote) {
         countLeftNotes += 1;
         countLeftConnectedNotes += isLeftConnected ? 1 : 0;
-        countPositions[getPotisionIndex(currLeftNote.x, currLeftNote.y)] += 1;
-        countDirections[getDirectionIndex(currLeftNote.d)] += 1;
+        countPositions[getPotisionIndex(currLeftNote)] += 1;
+        countDirections[getDirectionIndex(currLeftNote)] += 1;
 
         // add light event
         if (!isCutEventAdded) {
@@ -1580,8 +1615,8 @@ async function generate(srcPath) {
       if (currRightNote) {
         countRightNotes += 1;
         countRightConnectedNotes += isRightConnected ? 1 : 0;
-        countPositions[getPotisionIndex(currRightNote.x, currRightNote.y)] += 1;
-        countDirections[getDirectionIndex(currRightNote.d)] += 1;
+        countPositions[getPotisionIndex(currRightNote)] += 1;
+        countDirections[getDirectionIndex(currRightNote)] += 1;
 
         // add light event
         if (!isCutEventAdded) {
@@ -1624,7 +1659,7 @@ async function generate(srcPath) {
       let b;
       for (let j = i + 1; j < colorNotes.length; j++) {
         if (colorNotes[j].c === 0) {
-          if (chkTailNoteDirection(a.d, colorNotes[j].d)) {
+          if (chkTailNoteDirection(a, colorNotes[j])) {
             b = colorNotes[j];
           }
           break;
@@ -1654,7 +1689,7 @@ async function generate(srcPath) {
       let b;
       for (let j = i + 1; j < colorNotes.length; j++) {
         if (colorNotes[j].c === 1) {
-          if (chkTailNoteDirection(a.d, colorNotes[j].d)) {
+          if (chkTailNoteDirection(a, colorNotes[j])) {
             b = colorNotes[j];
           }
           break;
@@ -1679,6 +1714,29 @@ async function generate(srcPath) {
       return a.b - b.b;
     });
 
+    // count crossed notes
+    let countCrossedNotes = 0;
+    for (let k = 0; k < colorNotes.length; k++) {
+      let a = colorNotes[k];
+      let b = colorNotes[k + 1];
+      if (!b || a.b !== b.b || a.c === b.c) {
+        continue;
+      }
+      const ac = getCol(getPotisionIndex(a));
+      const bc = getCol(getPotisionIndex(b));
+      if (a.c === 0) {
+        // left: a, right: b
+        if (ac > bc) {
+          countCrossedNotes++;
+        }
+      } else {
+        // left: b, right: a
+        if (bc > ac) {
+          countCrossedNotes++;
+        }
+      }
+    }
+
     // debug
     console.log(`> ${songName}, ${Math.floor(duration)} s, ${tempo} bpm, ${characteristicName}, ${difficulty}.`);
     console.log(`> Total ${colorNotes.length} notes, ${countLargeEnergies} large energe notes`);
@@ -1690,6 +1748,7 @@ async function generate(srcPath) {
     console.log(`> ${burstSliders.length} burst sliders.`);
     console.log(`> ${basicBeatmapEvents.length} beatmap events.`);
     console.log(`> ${countPassedNotes} notes passed. (invalid position, invalid direction)`);
+    console.log(`> ${countCrossedNotes} notes crossed. (reverse position left-right notes)`);
     console.log(``);
 
     // debug details
