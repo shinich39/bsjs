@@ -27,6 +27,6 @@ const INPUT_PATH = path.join(__dirname, "input");
     }
   }
 
-  console.log(`> Complete generating ${count} files in ${Math.floor(Date.now() - startedAt) / 1000} ms.`);
+  console.log(`> Complete generating ${count} files in ${Math.floor(Date.now() - startedAt) / 1000} seconds.`);
 })();
 

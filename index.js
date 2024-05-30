@@ -18,6 +18,7 @@ const INFO_VERSION = '2.0.0';
 const MAP_VERSION = '3.0.0';
 const PREVIEW_START_TIME = 10;
 const PREVIEW_DURATION = 30;
+const START_OFFSET = 2.5;
 const ENABLE_BEAT_SPACING = true;
 const ENABLE_LESS_TOP_POSITION = true;
 const ENABLE_LESS_CENTER_POSITION = true;
@@ -65,7 +66,7 @@ const DIFFICULTY_OPTIONS = {
     beatSpacing: 0.25,
     noteSpacing: 0.5,
     sliderRange: [1.25, 5],
-    noteConnectSpacing: 1.5,
+    noteConnectSpacing: 2,
     obstacleSpacing: 15,
     obstacleDisappearSpacing: 0.5,
     bombDisappearSpacing: 0.5,
@@ -215,9 +216,9 @@ const RIGHT_NOTE_FORMATS = [
   // middle
   // [4,0], [4,3], [4,6],
 
-  [5,2], [5,5], [5,8],
+  [5,0], [5,3], [5,6],
 
-  [6,2], [6,5], [6,8],
+  [6,0], [6,3], [6,6],
 
   [7,2], [7,5], [7,8],
   [7,2], [7,5], [7,8],
@@ -228,11 +229,11 @@ const RIGHT_NOTE_FORMATS = [
   // bottom
   // [8,3], [8,6], [8,7],
 
-  [9,5], [9,7], [9,8],
+  [9,3], [9,6], [9,7],
 
-  [10,5], [10,7], [10,8],
-  [10,5], [10,7], [10,8],
-  [10,5], [10,7], [10,8],
+  [10,3], [10,6], [10,7],
+  [10,3], [10,6], [10,7],
+  [10,3], [10,6], [10,7],
 
   [11,5], [11,7], [11,8],
   [11,5], [11,7], [11,8],
@@ -562,6 +563,12 @@ function chkSamePosition(a, b) {
   }
   const ap = getPotisionIndex(a.x, a.y);
   const bp = getPotisionIndex(b.x, b.y);
+  if (ap === -1) {
+    throw new Error("Position not found.");
+  }
+  if (bp === -1) {
+    throw new Error("Position not found.");
+  }
   return ap === bp;
 }
 
@@ -571,6 +578,12 @@ function chkOverlappedObstacle(o, n) {
   }
   const op = getObstaclePositionIndexes(o);
   const np = getPotisionIndex(n.x, n.y);
+  if (op.length < 1) {
+    throw new Error("Position not found.");
+  }
+  if (np === -1) {
+    throw new Error("Position not found.");
+  }
   return op.indexOf(np) > -1;
 }
 
@@ -747,7 +760,7 @@ function getNextLeftPositionIndex(p) {
   }
 
   positions = positions.filter(function(pos) {
-    return pos >= 0 && pos <= 11;
+    return POSITIONS.indexOf(pos) > -1;
   });
 
   positions = jsu.shuffle(positions);
@@ -839,7 +852,7 @@ function getNextRightPositionIndex(p) {
   }
 
   positions = positions.filter(function(pos) {
-    return pos >= 0 && pos <= 11;
+    return POSITIONS.indexOf(pos) > -1;
   });
 
   positions = jsu.shuffle(positions);
@@ -1204,13 +1217,16 @@ async function generate(srcPath) {
       if (beat.value < minVolume) {
         continue;
       }
-
       // convert beat time
       let time = beat.time * (tempo / 60);
 
       // convert beat for editor => 1/4
       if (ENABLE_BEAT_SPACING) {
         time = Math.round(time / beatSpacing) * beatSpacing;
+      }
+
+      if (time < START_OFFSET) {
+        continue;
       }
 
       // find same beat
