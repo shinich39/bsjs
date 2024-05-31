@@ -22,11 +22,9 @@ const PREVIEW_DURATION = 30;
 const START_OFFSET = 2.5;
 const BACKGROUND_SPACING = 5;
 const ENABLE_BEAT_SPACING = true;
-const ENABLE_LESS_TOP_POSITION = false;
-const ENABLE_LESS_CENTER_POSITION = true;
-const LESS_CENTER_FACTOR_COUNT = 1;
-const ENABLE_LESS_CROSS_POSITION = true;
-const DISABLE_CROSS_POSITION = true;
+const CROSS_POSITION_RATE = 0.05; // 0: disable
+const LESS_TOP_POSITION_LIMIT = -1; // -1: disable
+const LESS_CENTER_FACTOR_LIMIT = 1; // -1: disable
 const DIFFICULTY_OPTIONS = {
   easy: {
     bufferSize: 0.5,
@@ -39,7 +37,7 @@ const DIFFICULTY_OPTIONS = {
     beatSpacing: 1,
     noteSpacing: 1.5,
     sliderRange: [2.5, 5],
-    noteConnectSpacing: 2,
+    noteConnectSpacing: 2.5,
     obstacleSpacing: 25,
     obstacleDisappearSpacing: 0.5,
     bombDisappearSpacing: 0.5,
@@ -148,8 +146,8 @@ const ENVIRONMENTS = [
 ];
 
 const POSITIONS = [
-  0,1,2,3,
-  4,5,6,7,
+  0,1, 2, 3,
+  4,5, 6, 7,
   8,9,10,11,
 ];
 
@@ -179,16 +177,16 @@ const NOTE_DIRECTIONS = [
 
 // for connect left note
 const LEFT_POSITION_COUNT = [
-  3,2,1,
+  3, 2,1,
   4,12,1,
-  3,2,1,
+  3, 2,1,
 ];
 
 // for connected right note
 const RIGHT_POSITION_COUNT = [
-  1,2,3,
+  1, 2,3,
   1,12,4,
-  1,2,3,
+  1, 2,3,
 ];
 
 const NEW_POSITION_DIRECTION_CASES = [
@@ -248,9 +246,7 @@ const LEFT_NOTE_FORMATS = [
   [4,0], [4,3], [4,6],
 
   // [5,2], [5,5], [5,8],
-  // [5,2], [5,5], [5,8],
 
-  // [6,2], [6,5], [6,8],
   // [6,2], [6,5], [6,8],
 
   // [7,2], [7,5], [7,8],
@@ -301,9 +297,7 @@ const RIGHT_NOTE_FORMATS = [
   // [4,0], [4,3], [4,6],
 
   // [5,0], [5,3], [5,6],
-  // [5,0], [5,3], [5,6],
 
-  // [6,0], [6,3], [6,6],
   // [6,0], [6,3], [6,6],
 
   // [7,2], [7,5], [7,8],
@@ -518,48 +512,40 @@ function getObstaclePositionIndexes(o) {
   return positions;
 }
 
-// const POSITIONS = [
-//   0,1,2,3,
-//   4,5,6,7,
-//   8,9,10,11,
-// ];
-
-// const DIRECTIONS = [
-//   0,1,2,
-//   3,4,5,
-//   6,7,8,
-// ];
 function chkDupeNotes(l, r) {
   if (!l || !r) {
     return false;
-  } 
+  }
   const lp = getPotisionIndex(l);
   const ld = getDirectionIndex(l);
   const rp = getPotisionIndex(r);
   const rd = getDirectionIndex(r);
   if (lp === -1) {
-    throw new Error("Position not found.");
+    throw new Error(`Position not found: ${JSON.stringify(l)}`);
   }
   if (ld === -1) {
-    throw new Error("Direction not found.");
+    throw new Error(`Direction not found: ${JSON.stringify(l)}`);
   }
   if (rp === -1) {
-    throw new Error("Position not found.");
+    throw new Error(`Position not found: ${JSON.stringify(r)}`);
   }
   if (rd === -1) {
-    throw new Error("Direction not found.");
+    throw new Error(`Direction not found: ${JSON.stringify(r)}`);
   }
   // same position
   if (lp === rp) {
     return true;
   }
-  // any row, crossed
-  if (DISABLE_CROSS_POSITION && getCol(lp) > getCol(rp)) {
-    return true;
-  }
-  // same row, crossed
-  if (isSameRow(lp, rp) && getCol(lp) > getCol(rp)) {
-    return true;
+  // crossed, cross position
+  if (getCol(lp) > getCol(rp)) {
+    // same row
+    if (isSameRow(lp, rp)) {
+      return true;
+    }
+    // any row
+    if (Math.random() < 1 - CROSS_POSITION_RATE) {
+      return true;
+    }
   }
   // same row, any space
   if (isSameRow(lp, rp)) {
@@ -627,7 +613,7 @@ function chkDupeNotes(l, r) {
       }
     }
   }
-  // digonal, blocked slide
+  // diagonal, no space
   if (isDiagonalPosition(lp, rp)) {
     const lc = getCol(lp);
     const lr = getRow(lp);
@@ -681,10 +667,10 @@ function chkSamePosition(a, b) {
   const ap = getPotisionIndex(a);
   const bp = getPotisionIndex(b);
   if (ap === -1) {
-    throw new Error("Position not found.");
+    throw new Error(`Position not found: ${JSON.stringify(a)}`);
   }
   if (bp === -1) {
-    throw new Error("Position not found.");
+    throw new Error(`Position not found: ${JSON.stringify(b)}`);
   }
   return ap === bp;
 }
@@ -778,7 +764,7 @@ function getPrevObstacle(obstacles) {
 //   4,50%, 1, x,
 //   3,2,   1, x,
 // ]
-function getNextLeftPositionIndex(lp, rp) {
+function getNextLeftPositionIndex(lp) {
   let positions = [];
 
   // left top
@@ -840,8 +826,8 @@ function getNextLeftPositionIndex(lp, rp) {
 
   positions = jsu.shuffle(positions);
 
-  if (ENABLE_LESS_CENTER_POSITION) {
-    let max = LESS_CENTER_FACTOR_COUNT;
+  if (LESS_CENTER_FACTOR_LIMIT > -1) {
+    let max = LESS_CENTER_FACTOR_LIMIT;
     for (let i = positions.length - 1; i >= 0; i--) {
       if (positions[i] === 5) {
         if (max < 1) {
@@ -852,7 +838,7 @@ function getNextLeftPositionIndex(lp, rp) {
       }
     }
 
-    max = LESS_CENTER_FACTOR_COUNT;
+    max = LESS_CENTER_FACTOR_LIMIT;
     for (let i = positions.length - 1; i >= 0; i--) {
       if (positions[i] === 6) {
         if (max < 1) {
@@ -864,23 +850,10 @@ function getNextLeftPositionIndex(lp, rp) {
     }
   }
 
-  if (ENABLE_LESS_TOP_POSITION) {
-    let max = 1;
+  if (LESS_TOP_POSITION_LIMIT > -1) {
+    let max = LESS_TOP_POSITION_LIMIT;
     for (let i = positions.length - 1; i >= 0; i--) {
       if (getRow(positions[i]) === 0) {
-        if (max < 1) {
-          positions.splice(i, 1);
-        } else {
-          max--;
-        }
-      }
-    }
-  }
-
-  if (ENABLE_LESS_CROSS_POSITION && rp > -1) {
-    let max = 1;
-    for (let i = positions.length - 1; i >= 0; i--) {
-      if (getCol(positions[i]) < getCol(rp)) {
         if (max < 1) {
           positions.splice(i, 1);
         } else {
@@ -893,7 +866,7 @@ function getNextLeftPositionIndex(lp, rp) {
   return jsu.choose(positions);
 }
 
-function getNextRightPositionIndex(rp, lp) {
+function getNextRightPositionIndex(rp) {
   let positions = [];
 
   // left top
@@ -955,8 +928,8 @@ function getNextRightPositionIndex(rp, lp) {
 
   positions = jsu.shuffle(positions);
 
-  if (ENABLE_LESS_CENTER_POSITION) {
-    let max = LESS_CENTER_FACTOR_COUNT;
+  if (LESS_CENTER_FACTOR_LIMIT > -1) {
+    let max = LESS_CENTER_FACTOR_LIMIT;
     for (let i = positions.length - 1; i >= 0; i--) {
       if (positions[i] === 5) {
         if (max < 1) {
@@ -967,7 +940,7 @@ function getNextRightPositionIndex(rp, lp) {
       }
     }
 
-    max = LESS_CENTER_FACTOR_COUNT;
+    max = LESS_CENTER_FACTOR_LIMIT;
     for (let i = positions.length - 1; i >= 0; i--) {
       if (positions[i] === 6) {
         if (max < 1) {
@@ -979,23 +952,10 @@ function getNextRightPositionIndex(rp, lp) {
     }
   }
 
-  if (ENABLE_LESS_TOP_POSITION) {
-    let max = 1;
+  if (LESS_TOP_POSITION_LIMIT > -1) {
+    let max = LESS_TOP_POSITION_LIMIT;
     for (let i = positions.length - 1; i >= 0; i--) {
       if (getRow(positions[i]) === 0) {
-        if (max < 1) {
-          positions.splice(i, 1);
-        } else {
-          max--;
-        }
-      }
-    }
-  }
-
-  if (ENABLE_LESS_CROSS_POSITION && lp > -1) {
-    let max = 1;
-    for (let i = positions.length - 1; i >= 0; i--) {
-      if (getCol(positions[i]) < getCol(lp)) {
         if (max < 1) {
           positions.splice(i, 1);
         } else {
@@ -1011,17 +971,13 @@ function getNextRightPositionIndex(rp, lp) {
 function createNextLeftNote(beat, prevLeftNote, currRightNote) {
   let positionIndex, directionIndex;
   if (!prevLeftNote) {
-    if (ENABLE_LESS_CROSS_POSITION && currRightNote) {
-      [positionIndex, directionIndex] = jsu.choose(LEFT_NOTE_FORMATS.slice(0).filter(e => getCol(e[0]) <= getCol(getPotisionIndex(currRightNote))));
-    } else {
-      [positionIndex, directionIndex] = jsu.choose(LEFT_NOTE_FORMATS);
-    }
+    [positionIndex, directionIndex] = jsu.choose(LEFT_NOTE_FORMATS);
     if (currRightNote) {
       directionIndex = jsu.choose(NEW_DIRECTION_CASES[getDirectionIndex(currRightNote)]);
     }
   } else {
     const prevPositionIndex = getPotisionIndex(prevLeftNote);
-    positionIndex = getNextLeftPositionIndex(prevPositionIndex, currRightNote ? getPotisionIndex(currRightNote) : -1);
+    positionIndex = getNextLeftPositionIndex(prevPositionIndex);
     directionIndex = getNextDirectionIndex(getDirectionIndex(prevLeftNote), positionIndex === prevPositionIndex);
   }
   return createNoteByIndex(beat, 0, positionIndex, directionIndex);
@@ -1030,17 +986,13 @@ function createNextLeftNote(beat, prevLeftNote, currRightNote) {
 function createNextRightNote(beat, prevRightNote, currLeftNote) {
   let positionIndex, directionIndex;
   if (!prevRightNote) {
-    if (ENABLE_LESS_CROSS_POSITION && currLeftNote) {
-      [positionIndex, directionIndex] = jsu.choose(RIGHT_NOTE_FORMATS.slice(0).filter(e => getCol(e[0]) >= getCol(getPotisionIndex(currLeftNote))));
-    } else {
-      [positionIndex, directionIndex] = jsu.choose(RIGHT_NOTE_FORMATS);
-    }
+    [positionIndex, directionIndex] = jsu.choose(RIGHT_NOTE_FORMATS);
     if (currLeftNote) {
       directionIndex = jsu.choose(NEW_DIRECTION_CASES[getDirectionIndex(currLeftNote)]);
     }
   } else {
     const prevPositionIndex = getPotisionIndex(prevRightNote);
-    positionIndex = getNextRightPositionIndex(prevPositionIndex, currLeftNote ? getPotisionIndex(currLeftNote) : -1);
+    positionIndex = getNextRightPositionIndex(prevPositionIndex);
     directionIndex = getNextDirectionIndex(getDirectionIndex(prevRightNote), positionIndex === prevPositionIndex);
   }
   return createNoteByIndex(beat, 1, positionIndex, directionIndex);
